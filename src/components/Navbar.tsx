@@ -8,17 +8,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { supabase } from "@/utils/supabase";
-import { User } from "@supabase/supabase-js"; // ✅ Importation du type officiel
+import { User } from "@supabase/supabase-js"; 
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  
-  // ✅ Remplacement de <any> par <User | null> (Ligne 14)
   const [user, setUser] = useState<User | null>(null); 
   
   const pathname = usePathname();
   const { t, lang } = useTranslation();
 
+  // ✅ CORRECTIF : Synchronisation de l'état pendant le rendu
+  // On stocke le chemin précédent pour détecter le changement sans useEffect
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (isOpen) {
+      setIsOpen(false);
+    }
+  }
+
+  // ✅ On garde cet useEffect car il synchronise avec un système EXTERNE (Supabase)
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -46,7 +56,6 @@ export default function Navbar() {
 
   return (
     <nav className="bg-kabuki-black text-white fixed w-full z-50 border-b border-neutral-800 shadow-lg">
-      {/* ... reste du code identique ... */}
       <div className="container mx-auto px-6 h-20 flex justify-between items-center">
         
         <TransitionLink 
@@ -64,6 +73,7 @@ export default function Navbar() {
           />
         </TransitionLink>
 
+        {/* --- DESKTOP NAV --- */}
         <div className="hidden md:flex space-x-8 items-center">
           {navLinks.map((link) => (
             <TransitionLink 
@@ -93,7 +103,7 @@ export default function Navbar() {
 
           {user && (
             <TransitionLink 
-              href="/admin/menu" 
+              href={`/${lang}/admin/menu`} 
               className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1 rounded border border-white/20 font-bold uppercase tracking-widest transition-colors text-kabuki-red"
             >
               Admin
@@ -103,6 +113,7 @@ export default function Navbar() {
           <LanguageSwitcher />
         </div>
 
+        {/* Burger Button */}
         <button 
           onClick={() => setIsOpen(!isOpen)} 
           className="md:hidden z-50 w-10 h-10 flex flex-col justify-center items-center focus:outline-none"
@@ -123,6 +134,7 @@ export default function Navbar() {
 
       </div>
 
+      {/* --- MOBILE NAV --- */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -137,27 +149,19 @@ export default function Navbar() {
                 <li key={link.path} className="relative">
                   <TransitionLink 
                     href={link.path}
-                    onClick={() => setIsOpen(false)}
                     className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${
                       isActive(link.path) ? "text-kabuki-red" : "text-white hover:text-gray-400"
                     }`}
                   >
                     {link.name}
                   </TransitionLink>
-                  {isActive(link.path) && (
-                    <motion.div 
-                      layoutId="activeNavMobile"
-                      className="absolute -left-8 top-1/2 -translate-y-1/2 w-2 h-2 bg-kabuki-red rounded-full"
-                    />
-                  )}
                 </li>
               ))}
 
               {user && (
                 <li>
                   <TransitionLink 
-                    href="/admin/menu" 
-                    onClick={() => setIsOpen(false)}
+                    href={`/${lang}/admin/menu`} 
                     className="text-kabuki-red font-display font-bold uppercase tracking-widest block text-xl underline"
                   >
                     Panneau Admin
@@ -168,7 +172,6 @@ export default function Navbar() {
               <li className="pt-8 flex flex-col items-center gap-6">
                   <TransitionLink 
                     href={`/${lang}/traiteur#devis`} 
-                    onClick={() => setIsOpen(false)}
                     className="bg-kabuki-red text-white px-8 py-4 rounded-full font-bold text-lg uppercase tracking-wider hover:bg-red-700 transition shadow-xl"
                   >
                     {t.hero.btnTraiteur}

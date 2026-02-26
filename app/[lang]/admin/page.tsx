@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default function AdminRootPage() {
-  // Redirige automatiquement toute personne tapant "/admin" vers la version française (ou celle par défaut)
-  redirect("/fr/admin/menu");
+export default function AdminPage({ params }: { params: { lang: string } }) {
+  // ✅ On envoie directement vers la gestion du menu
+  redirect(`/${params.lang}/admin/menu`);
 }

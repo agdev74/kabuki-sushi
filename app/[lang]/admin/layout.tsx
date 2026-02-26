@@ -19,13 +19,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const { lang, t } = useTranslation();
 
-  // ✅ Correction de la déconnexion : window.location force la sortie du contexte /fr/
+  // ✅ FIX DÉCONNEXION : On redirige vers la route localisée (ex: /fr/login)
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    localStorage.clear();
+    sessionStorage.clear();
+    // On force la redirection vers le login avec la langue actuelle
+    window.location.href = `/${lang}/login?logout=true`;
   };
 
-  const isActive = (path: string) => pathname?.includes(path);
+  const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
   const adminLinks = [
     { 
@@ -48,35 +51,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-[#080808] text-white">
       
-      {/* --- NOUVEAU HEADER (Remplace la Sidebar supprimée) --- */}
-      <header className="sticky top-0 z-40 w-full border-b border-neutral-800 bg-black/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex justify-between items-center">
+      {/* --- HEADER ADMIN --- */}
+      <header className="sticky top-0 z-50 w-full border-b border-neutral-800 bg-black/90 backdrop-blur-md">
+        <div className="container mx-auto px-6 h-20 flex justify-between items-center">
           
           <div className="flex items-center gap-8">
-            {/* Logo et Retour Site */}
+            {/* Logo et Retour Site localisé */}
             <div className="flex items-center gap-4">
-              <div className="w-7 h-7 bg-kabuki-red rounded flex items-center justify-center font-bold text-white text-xs">
+              <div className="w-8 h-8 bg-kabuki-red rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/20">
                 K
               </div>
-              <Link href={`/${lang}`} className="hidden md:flex items-center gap-2 text-gray-500 hover:text-white transition text-[10px] font-bold uppercase tracking-tighter">
+              <Link 
+                href={`/${lang}`} 
+                className="hidden md:flex items-center gap-2 text-gray-500 hover:text-white transition text-[10px] font-bold uppercase tracking-widest border border-neutral-800 px-3 py-1.5 rounded-full"
+              >
                 <ArrowLeft size={12} /> Voir le site
               </Link>
             </div>
 
-            {/* Navigation Horizontale */}
-            <nav className="flex items-center gap-1">
+            {/* Navigation Horizontale Localisée */}
+            <nav className="flex items-center gap-2">
               {adminLinks.map((link) => (
                 <Link
                   key={link.path}
                   href={link.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-bold transition-all duration-300 ${
                     isActive(link.path)
-                      ? "bg-kabuki-red text-white shadow-lg shadow-red-900/20"
-                      : "text-gray-400 hover:text-white hover:bg-neutral-800"
+                      ? "bg-kabuki-red text-white shadow-xl shadow-red-900/30"
+                      : "text-gray-400 hover:text-white hover:bg-neutral-800/50"
                   }`}
                 >
                   {link.icon}
-                  <span className="uppercase tracking-widest">{link.name}</span>
+                  <span className="uppercase tracking-[0.15em]">{link.name}</span>
                 </Link>
               ))}
             </nav>
@@ -85,24 +91,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Bouton Déconnexion */}
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-gray-500 hover:text-red-500 transition-colors uppercase tracking-widest"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-500 hover:text-white hover:bg-red-600/10 border border-transparent hover:border-red-600/20 transition-all uppercase tracking-widest group"
           >
-            <LogOut size={14} />
+            <LogOut size={14} className="group-hover:translate-x-0.5 transition-transform" />
             <span className="hidden sm:inline">Déconnexion</span>
           </button>
         </div>
       </header>
 
-      {/* --- ZONE DE CONTENU PRINCIPAL (Pleine largeur désormais) --- */}
-      <main className="p-6 md:p-10 relative">
-        <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-[0.02] pointer-events-none"></div>
+      {/* --- ZONE DE CONTENU --- */}
+      <main className="relative">
+        {/* Subtile texture de fond */}
+        <div className="fixed inset-0 bg-[url('/pattern-kimono.png')] opacity-[0.03] pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           {children}
         </div>
       </main>
 
-      {/* Le bouton WhatsApp reste par-dessus */}
+      {/* WhatsApp Button */}
       <WhatsAppButton />
 
     </div>
