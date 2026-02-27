@@ -8,28 +8,33 @@ import {
 } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
+import { z } from "zod"; // ✅ Ajout de Zod
+
+// ✅ Schéma de validation pour le contact
+const contactSchema = z.object({
+  name: z.string().min(2, "Le nom est trop court").max(50),
+  email: z.string().email("Email invalide"),
+  subject: z.string(),
+  phone: z.string().optional(),
+  message: z.string().min(10, "Message trop court (min. 10 caract.)").max(2000),
+  // Facultatifs sauf si sujet = Traiteur (géré par la logique du formulaire)
+  date: z.string().optional(),
+  guests: z.preprocess((val) => (val === "" ? undefined : Number(val)), z.number().optional()),
+});
 
 export default function ContactPage() {
   const { t, lang } = useTranslation();
+  const [errors, setErrors] = useState<Record<string, string>>({}); // ✅ État des erreurs
   
-  // URL de recherche Google Maps pour Kabuki Sushi Genève
-  const googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=Kabuki+Sushi+1+Boulevard+de+la+Tour+1205+Genève";
-  
-  // URL Embed Google Maps (Coordonnées exactes pour le 1 Bd de la Tour)
-  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.8821434381!2d6.140889!3d46.1928448!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c7b2cc8e19c9d%3A0x6b49e6f8090881c9!2zMSBCb3VsZXZhcmQgZGUgbGEgVG91ciwgMTIwNSBHZW7DqHZlLCBTdWlzc2U!5e0!3m2!1sfr!2sch!4v1710000000000!5m2!1sfr!2sch";
+  const googleMapsUrl = "https://maps.google.com/?q=Kabuki+Sushi+Geneve";
+  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.532323232323!2d6.141!3d46.196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c652e!2s1+Boulevard+de+la+Tour!5e0!3m2!1sfr!2sch!4v1";
 
-  // Libellé personnalisé pour "Trouvez-nous" selon la langue
-  const findUsLabel = {
-    fr: "Trouvez-nous",
-    en: "Find us",
-    es: "Encuéntranos"
-  }[lang as "fr" | "en" | "es"] || "Trouvez-nous";
-
+  const findUsLabel = { fr: "Trouvez-nous", en: "Find us", es: "Encuéntranos" }[lang as "fr" | "en" | "es"] || "Trouvez-nous";
   const days = {
     fr: { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" },
     en: { mon: "Monday", tueFri: "Tuesday - Friday", satSun: "Saturday - Sunday", closed: "Closed", midi: "Lunch", soir: "Dinner" },
     es: { mon: "Lunes", tueFri: "Martes - Viernes", satSun: "Sábado - Domingo", closed: "Cerrado", midi: "Mediodía", soir: "Noche" }
-  }[lang as "fr" | "en" | "es"] || { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" };
+  }[lang as "fr" | "en" | "es"];
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
@@ -39,6 +44,20 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
+
+    // ✅ Validation Zod
+    const result = contactSchema.safeParse(formData);
+    
+    if (!result.success) {
+      const formattedErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        formattedErrors[String(issue.path[0])] = issue.message;
+      });
+      setErrors(formattedErrors);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/contact', {
@@ -97,7 +116,6 @@ export default function ContactPage() {
                     1 Boulevard de la Tour<br />
                     1205 Genève, Suisse
                   </p>
-                  {/* ✅ LIEN CORRIGÉ : Pointe vers Google Maps */}
                   <a 
                     href={googleMapsUrl} 
                     target="_blank" 
@@ -178,18 +196,20 @@ export default function ContactPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.name}</label>
-                        <input required type="text" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <input type="text" className={`w-full bg-black/40 text-white border ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        {errors.name && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.email}</label>
-                        <input required type="email" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <input type="email" className={`w-full bg-black/40 text-white border ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        {errors.email && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.email}</p>}
                       </div>
                     </div>
                     
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sujet</label>
-                            <select className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition appearance-none" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
+                            <select className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition appearance-none cursor-pointer" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
                                 <option value="Général">Question Générale</option>
                                 <option value="Traiteur">Événement & Traiteur</option>
                                 <option value="Groupe">Réservation de Groupe</option>
@@ -225,7 +245,8 @@ export default function ContactPage() {
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Message</label>
-                      <textarea required rows={4} className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition resize-none shadow-inner" value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
+                      <textarea rows={4} className={`w-full bg-black/40 text-white border ${errors.message ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition resize-none shadow-inner`} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
+                      {errors.message && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.message}</p>}
                     </div>
 
                     <button type="submit" disabled={isSubmitting} className="w-full bg-kabuki-red text-white font-bold py-5 rounded-2xl hover:bg-red-700 transition shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-50">
@@ -254,7 +275,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* --- CARTE MAP CORRIGÉE --- */}
+      {/* --- CARTE MAP --- */}
       <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
           src={mapEmbedUrl}
