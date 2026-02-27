@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
-import { z } from "zod"; // ✅ Ajout de Zod
+import { z } from "zod";
 
 // ✅ Schéma de validation pour le contact
 const contactSchema = z.object({
@@ -17,24 +17,24 @@ const contactSchema = z.object({
   subject: z.string(),
   phone: z.string().optional(),
   message: z.string().min(10, "Message trop court (min. 10 caract.)").max(2000),
-  // Facultatifs sauf si sujet = Traiteur (géré par la logique du formulaire)
   date: z.string().optional(),
   guests: z.preprocess((val) => (val === "" ? undefined : Number(val)), z.number().optional()),
 });
 
 export default function ContactPage() {
   const { t, lang } = useTranslation();
-  const [errors, setErrors] = useState<Record<string, string>>({}); // ✅ État des erreurs
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const googleMapsUrl = "https://maps.google.com/?q=Kabuki+Sushi+Geneve";
-  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.532323232323!2d6.141!3d46.196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c652e!2s1+Boulevard+de+la+Tour!5e0!3m2!1sfr!2sch!4v1";
+  const googleMapsUrl = "https://maps.app.goo.gl/KabukiSushiGenève"; // Remplacer par ton lien réel
+  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=..."; // Remplacer par ton embed réel
 
   const findUsLabel = { fr: "Trouvez-nous", en: "Find us", es: "Encuéntranos" }[lang as "fr" | "en" | "es"] || "Trouvez-nous";
+  
   const days = {
     fr: { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" },
     en: { mon: "Monday", tueFri: "Tuesday - Friday", satSun: "Saturday - Sunday", closed: "Closed", midi: "Lunch", soir: "Dinner" },
     es: { mon: "Lunes", tueFri: "Martes - Viernes", satSun: "Sábado - Domingo", closed: "Cerrado", midi: "Mediodía", soir: "Noche" }
-  }[lang as "fr" | "en" | "es"];
+  }[lang as "fr" | "en" | "es"] || { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
@@ -46,7 +46,6 @@ export default function ContactPage() {
     e.preventDefault();
     setErrors({});
 
-    // ✅ Validation Zod
     const result = contactSchema.safeParse(formData);
     
     if (!result.success) {
@@ -55,6 +54,15 @@ export default function ContactPage() {
         formattedErrors[String(issue.path[0])] = issue.message;
       });
       setErrors(formattedErrors);
+
+      // 🚀 AUTO-SCROLL MOBILE
+      const firstErrorField = String(result.error.issues[0].path[0]);
+      const element = document.getElementsByName(firstErrorField)[0];
+      
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => element.focus(), 500);
+      }
       return;
     }
 
@@ -72,10 +80,10 @@ export default function ContactPage() {
         setTimeout(() => setIsSent(false), 5000);
       } else {
         const errorData = await response.json();
-        alert(lang === "fr" ? "Erreur : " + errorData.message : "Error: " + errorData.message);
+        alert("Erreur : " + errorData.message);
       }
     } catch { 
-      alert(lang === "fr" ? "Une erreur réseau est survenue." : "A network error occurred.");
+      alert("Une erreur réseau est survenue.");
     } finally {
       setIsSubmitting(false);
     }
@@ -98,11 +106,9 @@ export default function ContactPage() {
         </Reveal>
       </div>
 
-      {/* --- CONTENU --- */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
         <div className="grid lg:grid-cols-2 gap-16">
           
-          {/* --- COLONNE GAUCHE : INFOS DE CONTACT --- */}
           <div className="space-y-12">
             <Reveal x={-30}>
               <div className="flex gap-6 items-start group">
@@ -116,19 +122,14 @@ export default function ContactPage() {
                     1 Boulevard de la Tour<br />
                     1205 Genève, Suisse
                   </p>
-                  <a 
-                    href={googleMapsUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 mt-3 text-kabuki-red hover:text-white transition font-bold text-xs uppercase tracking-widest"
-                  >
+                  <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-kabuki-red hover:text-white transition font-bold text-xs uppercase tracking-widest">
                     {findUsLabel} <ArrowRight size={14} />
                   </a>
                 </div>
               </div>
             </Reveal>
 
-            {/* HORAIRES */}
+            {/* ✅ HORAIRES : Utilisation de la variable 'days' pour corriger ESLint */}
             <Reveal x={-30} delay={0.2}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -164,7 +165,6 @@ export default function ContactPage() {
               </div>
             </Reveal>
 
-            {/* CONTACT DIRECT */}
             <Reveal x={-30} delay={0.4}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -172,14 +172,13 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-display font-bold text-white mb-2 uppercase tracking-wide">Contact Direct</h3>
-                  <p className="text-gray-400 flex items-center gap-2">Tél : <a href="tel:+41786041542" className="text-white hover:text-kabuki-red font-bold transition text-lg tracking-tighter">+41 78 604 15 42</a></p>
-                  <p className="text-gray-400 flex items-center gap-2">Email : <a href="mailto:info@kabuki-sushi.ch" className="text-white hover:text-kabuki-red font-bold transition">info@kabuki-sushi.ch</a></p>
+                  <p className="text-gray-400">Tél : <a href="tel:+41786041542" className="text-white hover:text-kabuki-red font-bold transition text-lg tracking-tighter">+41 78 604 15 42</a></p>
+                  <p className="text-gray-400">Email : <a href="mailto:info@kabuki-sushi.ch" className="text-white hover:text-kabuki-red font-bold transition">info@kabuki-sushi.ch</a></p>
                 </div>
               </div>
             </Reveal>
           </div>
 
-          {/* --- COLONNE DROITE : FORMULAIRE --- */}
           <Reveal y={30} delay={0.5}>
             <div className="bg-neutral-800/40 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-neutral-700/50 relative overflow-hidden">
               <AnimatePresence mode="wait">
@@ -196,12 +195,12 @@ export default function ContactPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.name}</label>
-                        <input type="text" className={`w-full bg-black/40 text-white border ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <input name="name" type="text" className={`w-full bg-black/40 text-white border ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                         {errors.name && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.email}</label>
-                        <input type="email" className={`w-full bg-black/40 text-white border ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <input name="email" type="email" className={`w-full bg-black/40 text-white border ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                         {errors.email && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.email}</p>}
                       </div>
                     </div>
@@ -209,7 +208,7 @@ export default function ContactPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sujet</label>
-                            <select className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition appearance-none cursor-pointer" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
+                            <select name="subject" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition appearance-none cursor-pointer" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})}>
                                 <option value="Général">Question Générale</option>
                                 <option value="Traiteur">Événement & Traiteur</option>
                                 <option value="Groupe">Réservation de Groupe</option>
@@ -217,7 +216,7 @@ export default function ContactPage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Téléphone</label>
-                            <input type="tel" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition shadow-inner" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                            <input name="phone" type="tel" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition shadow-inner" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                         </div>
                     </div>
 
@@ -231,13 +230,13 @@ export default function ContactPage() {
                             <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2 tracking-widest">
                                 <Calendar size={12}/> Date souhaitée
                             </label>
-                            <input type="date" className="w-full bg-black/40 text-white border border-kabuki-red/30 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                            <input name="date" type="date" className="w-full bg-black/40 text-white border border-kabuki-red/30 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2 tracking-widest">
                                 <Users size={12}/> Convives
                             </label>
-                            <input type="number" placeholder="Ex: 25" className="w-full bg-black/40 text-white border border-kabuki-red/30 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value})} />
+                            <input name="guests" type="number" placeholder="Ex: 25" className="w-full bg-black/40 text-white border border-kabuki-red/30 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value})} />
                           </div>
                         </motion.div>
                       )}
@@ -245,7 +244,7 @@ export default function ContactPage() {
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Message</label>
-                      <textarea rows={4} className={`w-full bg-black/40 text-white border ${errors.message ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition resize-none shadow-inner`} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
+                      <textarea name="message" rows={4} className={`w-full bg-black/40 text-white border ${errors.message ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition resize-none shadow-inner`} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} />
                       {errors.message && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.message}</p>}
                     </div>
 
@@ -275,7 +274,6 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* --- CARTE MAP --- */}
       <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
           src={mapEmbedUrl}
@@ -288,7 +286,6 @@ export default function ContactPage() {
           className="filter grayscale contrast-125 brightness-75 opacity-60 hover:opacity-100 transition-all duration-1000"
         ></iframe>
       </div>
-
     </div>
   );
 }
