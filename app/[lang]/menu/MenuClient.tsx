@@ -3,25 +3,22 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Info } from "lucide-react";
+import { Search, Info, Plus, CheckCircle } from "lucide-react"; // ✅ Ajout de CheckCircle
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
 import { supabase } from "@/utils/supabase";
 import PageLoader from "@/components/PageLoader";
-// ✅ Import du nouveau composant (à créer dans /components)
 import ProductModal from "@/components/ProductModal";
+import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
 
-export interface MenuItem {
-  id: number;
+// On s'assure que MenuItem correspond à celui du contexte
+export interface MenuItem extends ContextMenuItem {
   name_fr: string;
   name_en?: string;
   name_es?: string;
   description_fr: string;
   description_en?: string;
   description_es?: string;
-  price: number;
-  image_url?: string;
-  category: string;
   is_available: boolean;
 }
 
@@ -42,10 +39,11 @@ const shimmer = (w: number, h: number) => `
 const toBase64 = (str: string) =>
   typeof window === 'undefined' ? Buffer.from(str).toString('base64') : window.btoa(str);
 
-// ✅ Ajout de la prop onClick pour ouvrir la modale
 const MenuItemCard = ({ item, onClick }: { item: MenuItem; onClick: () => void }) => {
   const { lang } = useTranslation();
+  const { addToCart } = useCart();
   const [imgError, setImgError] = useState(false);
+  const [isAdded, setIsAdded] = useState(false); // ✅ État pour la notification locale
 
   const getTranslation = () => {
     const currentLang = lang.toLowerCase();
@@ -65,6 +63,26 @@ const MenuItemCard = ({ item, onClick }: { item: MenuItem; onClick: () => void }
 
   const { name: displayName, desc: displayDesc } = getTranslation();
 
+  // Fonction d'ajout rapide depuis la carte
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêche l'ouverture de la modale
+    
+    // Ajout au panier
+    addToCart({
+      id: item.id,
+      name: displayName,
+      price: item.price,
+      image_url: item.image_url,
+      category: item.category,
+    });
+
+    // ✅ Affichage de la notification sur la carte
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 2000); // Disparaît après 2 secondes
+  };
+
   return (
     <motion.div 
       layout="position"
@@ -72,10 +90,26 @@ const MenuItemCard = ({ item, onClick }: { item: MenuItem; onClick: () => void }
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      onClick={onClick} // ✅ Rendre la carte cliquable
+      onClick={onClick}
       className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden hover:-translate-y-1 transition-all duration-300 group border border-neutral-700 hover:border-kabuki-red flex flex-col h-full cursor-pointer relative"
     >
       <div className="w-full bg-neutral-900 relative aspect-square overflow-hidden">
+        
+        {/* ✅ BANIÈRE DE NOTIFICATION SUR L'IMAGE */}
+        <AnimatePresence>
+          {isAdded && (
+            <motion.div
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -50, opacity: 0 }}
+              className="absolute top-0 left-0 w-full bg-kabuki-red/95 backdrop-blur-sm text-white py-2 flex items-center justify-center gap-2 z-20 shadow-md"
+            >
+              <CheckCircle size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Ajouté</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {!imgError && item.image_url ? (
           <Image 
             src={item.image_url}
@@ -93,24 +127,32 @@ const MenuItemCard = ({ item, onClick }: { item: MenuItem; onClick: () => void }
             KABUKI SUSHI
           </div>
         )}
-        {/* Petit indicateur visuel au survol */}
-        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <Info size={14} />
         </div>
       </div>
       
-      <div className="p-3 flex flex-col flex-grow">
+      <div className="p-3 flex flex-col flex-grow relative">
         <div className="flex justify-between items-start mb-2 gap-2">
-          <h3 className="text-[11px] md:text-xs font-bold text-white uppercase line-clamp-2 leading-tight font-display tracking-wide">
+          <h3 className="text-[11px] md:text-xs font-bold text-white uppercase line-clamp-2 leading-tight font-display tracking-wide pr-6">
             {displayName ? displayName.split('(')[0] : "Sans nom"}
           </h3>
           <span className="bg-kabuki-red text-white font-bold px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap shadow-sm">
             {item.price ? Number(item.price).toFixed(2) : "0.00"} <span className="text-[7px]">CHF</span>
           </span>
         </div>
-        <p className="text-gray-500 text-[9px] line-clamp-2 mt-auto leading-snug">
+        <p className="text-gray-500 text-[9px] line-clamp-2 mt-auto leading-snug pr-8">
           {displayDesc || "..."}
         </p>
+
+        {/* Bouton Ajout Rapide */}
+        <button 
+          onClick={handleQuickAdd}
+          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-neutral-700 text-white flex items-center justify-center hover:bg-kabuki-red hover:scale-110 transition-all shadow-md z-10"
+          title="Ajouter au panier"
+        >
+          <Plus size={16} strokeWidth={3} />
+        </button>
       </div>
     </motion.div>
   );
@@ -122,7 +164,6 @@ export default function MenuClient() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
-  // ✅ État pour gérer le produit sélectionné
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
 
   useEffect(() => {
@@ -135,7 +176,12 @@ export default function MenuClient() {
         .order("id", { ascending: true });
 
       if (data) {
-        setItems(data as MenuItem[]);
+        // Adaption des données pour correspondre à MenuItem local
+        const mappedData = data.map(item => ({
+          ...item,
+          name: item.name_fr // Utilisé comme fallback
+        }));
+        setItems(mappedData as MenuItem[]);
       }
       setLoading(false);
     }
@@ -157,8 +203,8 @@ export default function MenuClient() {
   const filterCategories = [
     { id: "Tous", label: t.menu.all },
     ...rawCategories.map(cat => ({
-      id: cat,
-      label: (t.menu.categories as Record<string, string>)[cat] || cat 
+      id: cat || "Non classé",
+      label: (t.menu.categories as Record<string, string>)?.[cat || ""] || cat 
     }))
   ];
 
@@ -226,14 +272,14 @@ export default function MenuClient() {
                 className="mb-16"
               >
                 <h2 className="text-lg md:text-2xl font-bold text-white mb-8 pl-4 border-l-4 border-kabuki-red uppercase font-display tracking-widest">
-                  {(t.menu.categories as Record<string, string>)[category] || category}
+                  {(t.menu.categories as Record<string, string>)?.[category || ""] || category}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                   {itemsInCategory.map((item) => (
                     <MenuItemCard 
                         key={item.id} 
                         item={item} 
-                        onClick={() => setSelectedProduct(item)} // ✅ Au clic, on définit le produit
+                        onClick={() => setSelectedProduct(item)} 
                     />
                   ))}
                 </div>
@@ -243,7 +289,7 @@ export default function MenuClient() {
         </AnimatePresence>
       </div>
 
-      {/* ✅ Intégration de la modale avec animation de présence */}
+      {/* Modale Produit */}
       <AnimatePresence>
         {selectedProduct && (
           <ProductModal 

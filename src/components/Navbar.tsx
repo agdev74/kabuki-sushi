@@ -9,16 +9,19 @@ import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { supabase } from "@/utils/supabase";
 import { User } from "@supabase/supabase-js"; 
+import { ShoppingCart } from "lucide-react"; // ✅ Icône du panier
+import { useCart } from "@/context/CartContext"; // ✅ Connexion au panier
+import CartDrawer from "./CartDrawer"; // ✅ Import du tiroir du panier
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false); // ✅ État du tiroir
   const [user, setUser] = useState<User | null>(null); 
   
   const pathname = usePathname();
   const { t, lang } = useTranslation();
+  const { totalItems } = useCart(); // ✅ Récupération du nombre d'articles
 
-  // ✅ CORRECTIF : Synchronisation de l'état pendant le rendu
-  // On stocke le chemin précédent pour détecter le changement sans useEffect
   const [prevPathname, setPrevPathname] = useState(pathname);
 
   if (pathname !== prevPathname) {
@@ -28,7 +31,6 @@ export default function Navbar() {
     }
   }
 
-  // ✅ On garde cet useEffect car il synchronise avec un système EXTERNE (Supabase)
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -94,6 +96,26 @@ export default function Navbar() {
             </TransitionLink>
           ))}
           
+          {/* ✅ ICÔNE DU PANIER (Desktop) */}
+          <button 
+            onClick={() => setIsCartOpen(true)} 
+            className="relative group p-2"
+          >
+            <ShoppingCart size={22} className="text-gray-300 group-hover:text-white transition-colors" />
+            <AnimatePresence>
+              {totalItems > 0 && (
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="absolute -top-1 -right-1 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
+                >
+                  {totalItems}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+
           <TransitionLink 
             href={`/${lang}/traiteur#devis`} 
             className="bg-kabuki-red text-white px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition shadow-lg shadow-red-900/20"
@@ -113,28 +135,50 @@ export default function Navbar() {
           <LanguageSwitcher />
         </div>
 
-        {/* Burger Button */}
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
-          className="md:hidden z-50 w-10 h-10 flex flex-col justify-center items-center focus:outline-none"
-        >
-          <motion.span 
-            animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
-            className="w-8 h-0.5 bg-white block mb-2 rounded-full"
-          ></motion.span>
-          <motion.span 
-            animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
-            className="w-8 h-0.5 bg-kabuki-red block mb-2 rounded-full"
-          ></motion.span>
-          <motion.span 
-            animate={isOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }}
-            className="w-8 h-0.5 bg-white block rounded-full"
-          ></motion.span>
-        </button>
+        {/* --- MOBILE NAV BUTTONS --- */}
+        <div className="flex md:hidden items-center space-x-6">
+          {/* ✅ ICÔNE DU PANIER (Mobile) - Toujours visible à côté du burger */}
+          <button 
+            onClick={() => setIsCartOpen(true)} 
+            className="relative p-2 z-50"
+          >
+            <ShoppingCart size={24} className="text-white" />
+            <AnimatePresence>
+              {totalItems > 0 && (
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
+                >
+                  {totalItems}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+
+          <button 
+            onClick={() => setIsOpen(!isOpen)} 
+            className="z-50 w-8 h-10 flex flex-col justify-center items-center focus:outline-none"
+          >
+            <motion.span 
+              animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
+              className="w-8 h-0.5 bg-white block mb-2 rounded-full"
+            ></motion.span>
+            <motion.span 
+              animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
+              className="w-8 h-0.5 bg-kabuki-red block mb-2 rounded-full"
+            ></motion.span>
+            <motion.span 
+              animate={isOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }}
+              className="w-8 h-0.5 bg-white block rounded-full"
+            ></motion.span>
+          </button>
+        </div>
 
       </div>
 
-      {/* --- MOBILE NAV --- */}
+      {/* --- MENU MOBILE DÉROULANT --- */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -185,6 +229,9 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ TIROIR DU PANIER */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </nav>
   );
 }
