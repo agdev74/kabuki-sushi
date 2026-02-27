@@ -61,7 +61,6 @@ export default function Footer() {
               </li>
               <li className="flex items-center">
                 <span className="text-kabuki-red mr-3">📞</span>
-                {/* ✅ Mise à jour du numéro officiel */}
                 <a href="tel:+41786041542" className="hover:text-white transition font-bold tracking-tighter">
                   +41 78 604 15 42
                 </a> 
@@ -69,13 +68,12 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* COLONNE 4 : HORAIRES (Mise à jour complète) */}
+          {/* COLONNE 4 : HORAIRES */}
           <div>
             <h3 className="text-lg font-display font-bold uppercase tracking-widest mb-6 border-l-4 border-kabuki-red pl-3">
               {t.contact.opening}
             </h3>
             <ul className="space-y-4 text-gray-400 text-xs uppercase tracking-widest">
-              {/* MARDI - VENDREDI */}
               <li className="flex flex-col gap-1">
                 <span className="text-white font-bold">{days.tueFri}</span>
                 <div className="flex justify-between text-[10px]">
@@ -88,7 +86,6 @@ export default function Footer() {
                 </div>
               </li>
 
-              {/* SAMEDI - DIMANCHE */}
               <li className="flex flex-col gap-1 border-t border-neutral-800 pt-3">
                 <span className="text-white font-bold">{days.satSun}</span>
                 <div className="flex justify-between text-[10px]">
@@ -97,7 +94,6 @@ export default function Footer() {
                 </div>
               </li>
 
-              {/* LUNDI */}
               <li className="flex justify-between border-t border-neutral-800 pt-3 text-kabuki-red font-bold">
                 <span>{days.mon}</span>
                 <span>{days.closed}</span>
@@ -107,13 +103,17 @@ export default function Footer() {
 
         </div>
 
-        {/* COPYRIGHT */}
+        {/* COPYRIGHT & LÉGAL */}
         <div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-500 uppercase tracking-widest">
           <p>© {new Date().getFullYear()} Kabuki Sushi Genève. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="hover:text-white transition">
+            {/* ✅ LIEN MIS À JOUR ET DÉSACTIVATION DU "AVISO LEGAL" SI PAS EN ESPAGNOL */}
+            <Link 
+              href={`/${lang}/mentions-legales`} 
+              className="hover:text-white transition font-bold"
+            >
               {lang === "fr" ? "Mentions Légales" : lang === "en" ? "Legal Notice" : "Aviso Legal"}
-            </a>
+            </Link>
           </div>
         </div>
       </div>

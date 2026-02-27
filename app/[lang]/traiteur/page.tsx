@@ -3,12 +3,18 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useTranslation } from "@/context/LanguageContext"; // Import du hook
+import { useTranslation } from "@/context/LanguageContext"; 
+
+// ✅ Interface pour corriger l'erreur ESLint "Unexpected any"
+interface CateringBloc {
+  tag: string;
+  title: string;
+  desc: string;
+}
 
 export default function TraiteurPage() {
-  const { t } = useTranslation(); // Récupération des traductions
+  const { t } = useTranslation(); 
   
-  // --- LOGIQUE DU FORMULAIRE ---
   const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -22,7 +28,6 @@ export default function TraiteurPage() {
     }, 2000);
   }
 
-  // On associe les images aux blocs du dictionnaire
   const experienceImages = [
     "/images/traiteur-chef.jpg",
     "/images/traiteur-frais.jpg",
@@ -79,7 +84,7 @@ export default function TraiteurPage() {
      {/* --- L'EXPÉRIENCE KABUKI --- */}
       <section className="py-24 bg-neutral-900 text-white relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-kabuki-red/5 text-[10rem] font-display font-bold whitespace-nowrap select-none z-0">
-          KABUKI EXPERIENCE
+          KABUKI CATERING
         </div>
 
         <div className="container mx-auto px-6 relative z-10">
@@ -97,7 +102,8 @@ export default function TraiteurPage() {
           </motion.div>
 
           <div className="space-y-24">
-            {t.catering.blocs.map((bloc: any, index: number) => (
+            {/* ✅ Typage ajouté ici : (bloc: CateringBloc, ...) */}
+            {t.catering.blocs.map((bloc: CateringBloc, index: number) => (
               <motion.div 
                 key={index}
                 initial={{ opacity: 0, y: 50 }}
@@ -123,7 +129,7 @@ export default function TraiteurPage() {
         </div>
       </section>
 
-      {/* --- FORMULAIRE DEVIS INTERACTIF --- */}
+      {/* --- FORMULAIRE DEVIS --- */}
       <section id="devis" className="bg-kabuki-black py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0"></div>
 
@@ -213,8 +219,8 @@ export default function TraiteurPage() {
                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {t.catering.formSection.sending}
+                           </svg>
+                           {t.catering.formSection.sending}
                         </span>
                       ) : (
                         <span className="relative tracking-widest uppercase text-lg">{t.catering.formSection.submit}</span>

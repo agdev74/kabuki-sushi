@@ -7,6 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import PageLoader from "@/components/PageLoader";
 import { LanguageProvider } from "@/context/LanguageContext";
 import MobileActionBar from "@/components/MobileActionBar";
+import CookieBanner from "@/components/CookieBanner";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -57,6 +58,8 @@ export default function RootLayout({
           <ScrollToTop /> 
 
           <MobileActionBar />
+
+          <CookieBanner/>
 
           <Footer /> 
 

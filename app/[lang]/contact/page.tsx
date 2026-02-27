@@ -12,7 +12,19 @@ import { useTranslation } from "@/context/LanguageContext";
 export default function ContactPage() {
   const { t, lang } = useTranslation();
   
-  // Variables pour les traductions des jours (pour correspondre au Footer)
+  // URL de recherche Google Maps pour Kabuki Sushi Genève
+  const googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=Kabuki+Sushi+1+Boulevard+de+la+Tour+1205+Genève";
+  
+  // URL Embed Google Maps (Coordonnées exactes pour le 1 Bd de la Tour)
+  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.8821434381!2d6.140889!3d46.1928448!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c7b2cc8e19c9d%3A0x6b49e6f8090881c9!2zMSBCb3VsZXZhcmQgZGUgbGEgVG91ciwgMTIwNSBHZW7DqHZlLCBTdWlzc2U!5e0!3m2!1sfr!2sch!4v1710000000000!5m2!1sfr!2sch";
+
+  // Libellé personnalisé pour "Trouvez-nous" selon la langue
+  const findUsLabel = {
+    fr: "Trouvez-nous",
+    en: "Find us",
+    es: "Encuéntranos"
+  }[lang as "fr" | "en" | "es"] || "Trouvez-nous";
+
   const days = {
     fr: { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" },
     en: { mon: "Monday", tueFri: "Tuesday - Friday", satSun: "Saturday - Sunday", closed: "Closed", midi: "Lunch", soir: "Dinner" },
@@ -22,13 +34,7 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "Général",
-    phone: "",
-    date: "",
-    guests: "",
-    message: ""
+    name: "", email: "", subject: "Général", phone: "", date: "", guests: "", message: ""
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,7 +65,7 @@ export default function ContactPage() {
   return (
     <div className="bg-neutral-900 min-h-screen">
       
-      {/* --- HERO HEADER (Fix Marge Moche : pt-24 md:pt-32) --- */}
+      {/* --- HERO HEADER --- */}
       <div className="bg-black text-white pt-24 md:pt-32 pb-20 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0"></div>
         <Reveal>
@@ -73,7 +79,7 @@ export default function ContactPage() {
         </Reveal>
       </div>
 
-      {/* --- CONTENU (Fix Marge Moche : px-4 md:px-8) --- */}
+      {/* --- CONTENU --- */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
         <div className="grid lg:grid-cols-2 gap-16">
           
@@ -91,14 +97,20 @@ export default function ContactPage() {
                     1 Boulevard de la Tour<br />
                     1205 Genève, Suisse
                   </p>
-                  <a href="https://goo.gl/maps/..." target="_blank" className="inline-flex items-center gap-2 mt-3 text-kabuki-red hover:text-white transition font-bold text-xs uppercase tracking-widest">
-                    {t.contact.follow} <ArrowRight size={14} />
+                  {/* ✅ LIEN CORRIGÉ : Pointe vers Google Maps */}
+                  <a 
+                    href={googleMapsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-3 text-kabuki-red hover:text-white transition font-bold text-xs uppercase tracking-widest"
+                  >
+                    {findUsLabel} <ArrowRight size={14} />
                   </a>
                 </div>
               </div>
             </Reveal>
 
-            {/* HORAIRES MIS À JOUR */}
+            {/* HORAIRES */}
             <Reveal x={-30} delay={0.2}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -107,7 +119,6 @@ export default function ContactPage() {
                 <div>
                   <h3 className="text-xl font-display font-bold text-white mb-4 uppercase tracking-wide">{t.contact.opening}</h3>
                   <div className="space-y-4 text-sm text-gray-400 max-w-xs">
-                    {/* MARDI - VENDREDI */}
                     <div className="border-b border-neutral-800 pb-3">
                       <div className="font-bold text-white mb-1 uppercase text-xs tracking-wider">{days.tueFri}</div>
                       <div className="flex justify-between text-[11px]">
@@ -119,7 +130,6 @@ export default function ContactPage() {
                         <span className="text-white">18:00 - 22:30</span>
                       </div>
                     </div>
-                    {/* SAMEDI - DIMANCHE */}
                     <div className="border-b border-neutral-800 pb-3">
                       <div className="font-bold text-white mb-1 uppercase text-xs tracking-wider">{days.satSun}</div>
                       <div className="flex justify-between text-[11px]">
@@ -127,7 +137,6 @@ export default function ContactPage() {
                         <span className="text-white">18:00 - 22:30</span>
                       </div>
                     </div>
-                    {/* LUNDI */}
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-white uppercase tracking-wider">{days.mon}</span>
                       <span className="text-kabuki-red font-bold uppercase">{days.closed}</span>
@@ -137,7 +146,7 @@ export default function ContactPage() {
               </div>
             </Reveal>
 
-            {/* CONTACT DIRECT MIS À JOUR */}
+            {/* CONTACT DIRECT */}
             <Reveal x={-30} delay={0.4}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -245,15 +254,16 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* --- CARTE MAP --- */}
+      {/* --- CARTE MAP CORRIGÉE --- */}
       <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.7614046182!2d6.1415!3d46.196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c652e90e4f203%3A0x673199c43d940602!2s1%20Boulevard%20de%20la%20Tour%2C%201205%20Gen%C3%A8ve!5e0!3m2!1sfr!2sch!4v1700000000000" 
+          src={mapEmbedUrl}
           width="100%" 
           height="100%" 
           style={{border:0}} 
           allowFullScreen={true} 
           loading="lazy" 
+          referrerPolicy="no-referrer-when-downgrade"
           className="filter grayscale contrast-125 brightness-75 opacity-60 hover:opacity-100 transition-all duration-1000"
         ></iframe>
       </div>

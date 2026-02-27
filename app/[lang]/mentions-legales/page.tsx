@@ -49,8 +49,8 @@ export default function MentionsLegales() {
           <section>
             <h2 className="text-xl font-bold text-white mb-4">3. Propriété Intellectuelle</h2>
             <p className="leading-relaxed">
-              L'ensemble de ce site relève de la législation suisse et internationale sur le droit d'auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
-              La reproduction de tout ou partie de ce site sur un support électronique quel qu'il soit est formellement interdite sauf autorisation expresse du directeur de la publication.
+              L&apos;ensemble de ce site relève de la législation suisse et internationale sur le droit d&apos;auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
+              La reproduction de tout ou partie de ce site sur un support électronique quel qu&apos;il soit est formellement interdite sauf autorisation expresse du directeur de la publication.
             </p>
           </section>
 
@@ -58,7 +58,7 @@ export default function MentionsLegales() {
           <section>
             <h2 className="text-xl font-bold text-white mb-4">4. Protection des Données</h2>
             <p className="leading-relaxed mb-4">
-              Kabuki Sushi s'engage à ce que la collecte et le traitement de vos données, effectués à partir du site, soient conformes à la loi fédérale sur la protection des données (LPD) et au règlement général sur la protection des données (RGPD).
+              Kabuki Sushi s&apos;engage à ce que la collecte et le traitement de vos données, effectués à partir du site, soient conformes à la loi fédérale sur la protection des données (LPD) et au règlement général sur la protection des données (RGPD).
             </p>
             <p className="leading-relaxed">
               Les informations recueillies via les formulaires (Contact, Devis Traiteur) sont enregistrées dans un fichier informatisé par Kabuki Sushi pour la gestion de la clientèle. Elles sont conservées pendant 3 ans et sont destinées uniquement à notre service commercial.

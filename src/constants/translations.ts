@@ -36,7 +36,7 @@ export const translations = {
       subtitle: "Ils ont goûté",
       rating: "Noté {note}/5 sur plus de 150 avis Google.",
       items: [
-        { name: "Sophie M.", role: "Mariage", text: "Une prestation exceptionnelle pour notre mariage. Le show cooking a bluffé tous nos invités." },
+        { name: "Sophie M.", role: "Mariage", text: "Une prestation exceptionnelle pour notre mariage. La qualité du buffet a impressionné tous nos invités." },
         { name: "Thomas D.", role: "Entreprise", text: "Toujours ponctuel, magnifiquement présenté et délicieux. Le meilleur japonais de la région." },
         { name: "Élodie & Marc", role: "Dîner privé", text: "Un voyage au Japon sans quitter notre salon. Une expérience culinaire recommandée." }
       ]
@@ -47,43 +47,43 @@ export const translations = {
       call: "Appeler"
     },
     catering: {
-      title: "Sublimez vos Événements",
-      subtitle: "Entreprises, Mariages, Cocktails.",
-      desc: "Offrez à vos invités une animation culinaire spectaculaire et des saveurs inoubliables.",
+      title: "Service Traiteur de Prestige",
+      subtitle: "L'excellence japonaise pour vos réceptions.",
+      desc: "Mariages, cocktails dînatoires ou repas d'entreprise : nous créons des buffets de sushis raffinés pour tous vos événements à Genève.",
       btnHero: "Demander un devis gratuit",
-      experienceTitle: "L'Art du Spectacle Culinaire",
+      experienceTitle: "L'Art de Recevoir",
       blocs: [
         {
-          tag: "01. LE GESTE & LA MAÎTRISE",
-          title: "Nos Maîtres Sushi en Scène",
-          desc: "Plus qu'un repas, une performance. Nos chefs, formés à l'art traditionnel, préparent sous vos yeux avec une précision chirurgicale."
+          tag: "01. SAVOIR-FAIRE & TRADITION",
+          title: "L'Excellence de nos Maîtres Sushi",
+          desc: "Nos chefs, formés aux techniques traditionnelles, préparent chaque pièce avec une rigueur absolue pour garantir une expérience gastronomique authentique."
         },
         {
-          tag: "02. L'EXIGENCE ABSOLUE",
-          title: "Une Fraîcheur Intransigeante",
-          desc: "Nous sélectionnons nos poissons quotidiennement auprès des meilleures pêcheries. Respect strict de la chaîne du froid."
+          tag: "02. FRAÎCHEUR ABSOLUE",
+          title: "Une Qualité Intransigeante",
+          desc: "Nous sélectionnons nos poissons quotidiennement auprès des meilleures pêcheries pour vous offrir le meilleur de la mer, dans le respect strict des saveurs."
         },
         {
-          tag: "03. L'ESTHÉTIQUE VISUELLE",
-          title: "Des Tableaux à Déguster",
-          desc: "Nos dressages sont pensés comme des œuvres d'art, jouant sur les couleurs pour sublimer votre événement."
+          tag: "03. RAFFINEMENT VISUEL",
+          title: "L'Élégance sur votre Table",
+          desc: "Nos dressages sont pensés pour sublimer vos tables, mêlant épure japonaise et esthétique moderne pour ravir les yeux autant que les papilles."
         }
       ],
       formSection: {
-        title: "Créez Votre Scène",
-        subtitle: "Parlez-nous de votre projet, nous en ferons un spectacle inoubliable.",
+        title: "Votre Devis Personnalisé",
+        subtitle: "Parlez-nous de votre projet, nous vous répondrons avec une proposition sur-mesure sous 24h.",
         name: "Nom complet",
         email: "Email",
         type: "Type d'événement",
-        types: ["Entreprise / Séminaire", "Mariage de Prestige", "Anniversaire Privé", "Autre Cocktail"],
+        types: ["Événement d'Entreprise", "Mariage", "Réception Privée", "Cocktail Dînatoire"],
         guests: "Nombre de convives",
-        vision: "Votre Vision & Besoins",
-        visionPlaceholder: "Racontez-nous votre projet...",
-        submit: "Lever de Rideau sur mon Devis",
+        vision: "Détails de votre réception",
+        visionPlaceholder: "Date, lieu, envies particulières...",
+        submit: "Demander mon Devis",
         sending: "Envoi en cours...",
-        successTitle: "Message Reçu !",
-        successDesc: "Merci de nous avoir contactés. Notre équipe commerciale vous répondra sous 24h.",
-        successBtn: "Envoyer une autre demande"
+        successTitle: "Demande Envoyée",
+        successDesc: "Merci de nous avoir contactés. Notre équipe étudie votre projet et vous recontactera très rapidement.",
+        successBtn: "Nouvelle demande"
       }
     },
     contact: {
@@ -135,7 +135,7 @@ export const translations = {
       subtitle: "Reviews",
       rating: "Rated {note}/5 on over 150 Google reviews.",
       items: [
-        { name: "Sophie M.", role: "Wedding", text: "An exceptional performance for our wedding. The show cooking amazed all our guests." },
+        { name: "Sophie M.", role: "Wedding", text: "Exceptional service for our wedding. The quality of the buffet impressed all our guests." },
         { name: "Thomas D.", role: "Corporate", text: "Always on time, beautifully presented and delicious. The best Japanese in the area." },
         { name: "Élodie & Marc", role: "Private Dinner", text: "A trip to Japan without leaving our living room. Highly recommended culinary experience." }
       ]
@@ -146,43 +146,43 @@ export const translations = {
       call: "Call"
     },
     catering: {
-      title: "Elevate Your Events",
-      subtitle: "Corporate, Weddings, Cocktails.",
-      desc: "Offer your guests a spectacular culinary animation and unforgettable flavors.",
+      title: "Prestige Catering Service",
+      subtitle: "Japanese excellence for your receptions.",
+      desc: "Weddings, cocktail parties, or corporate events: we create refined sushi buffets for all your occasions in Geneva.",
       btnHero: "Request a free quote",
-      experienceTitle: "The Art of Culinary Performance",
+      experienceTitle: "The Art of Hosting",
       blocs: [
         {
-          tag: "01. MASTERY & SKILL",
-          title: "Our Sushi Masters on Stage",
-          desc: "More than a meal, a performance. Our chefs, trained in traditional art, prepare before your eyes with surgical precision."
+          tag: "01. MASTERY & TRADITION",
+          title: "The Excellence of our Sushi Masters",
+          desc: "Our chefs, trained in traditional techniques, prepare each piece with absolute rigor to guarantee an authentic gastronomic experience."
         },
         {
-          tag: "02. ABSOLUTE STANDARDS",
-          title: "Uncompromising Freshness",
-          desc: "We select our fish daily from the best fisheries. Strict respect for the cold chain."
+          tag: "02. ABSOLUTE FRESHNESS",
+          title: "Uncompromising Quality",
+          desc: "We select our fish daily from the best fisheries to offer you the finest seafood, strictly respecting natural flavors."
         },
         {
-          tag: "03. VISUAL AESTHETICS",
-          title: "Edible Artworks",
-          desc: "Our arrangements are designed as works of art, playing with colors to enhance your event's decor."
+          tag: "03. VISUAL REFINEMENT",
+          title: "Elegance on Your Table",
+          desc: "Our arrangements are designed to enhance your tables, blending Japanese minimalism with modern aesthetics."
         }
       ],
       formSection: {
-        title: "Create Your Scene",
-        subtitle: "Tell us about your project, we will make it an unforgettable show.",
+        title: "Your Personalized Quote",
+        subtitle: "Tell us about your project, we will respond with a custom proposal within 24 hours.",
         name: "Full Name",
         email: "Email",
         type: "Event Type",
-        types: ["Corporate / Seminar", "Prestige Wedding", "Private Birthday", "Other Cocktail"],
+        types: ["Corporate Event", "Wedding", "Private Reception", "Cocktail Party"],
         guests: "Number of guests",
-        vision: "Your Vision & Needs",
-        visionPlaceholder: "Tell us about your project...",
-        submit: "Curtain Up on my Quote",
+        vision: "Reception Details",
+        visionPlaceholder: "Date, location, special requests...",
+        submit: "Request my Quote",
         sending: "Sending...",
-        successTitle: "Message Received!",
-        successDesc: "Thank you for contacting us. Our commercial team will respond within 24 hours.",
-        successBtn: "Send another request"
+        successTitle: "Request Sent",
+        successDesc: "Thank you for contacting us. Our team will study your project and get back to you shortly.",
+        successBtn: "New Request"
       }
     },
     contact: {
@@ -205,7 +205,7 @@ export const translations = {
       subtitle: "Arte Culinario Japonés",
       title_top: "Kabuki",
       title_bottom: "Sushi",
-      desc: "Una fusion entre tradición milenaria y audacia moderna. Disfrute de la excelencia en el local o en casa.",
+      desc: "Una fusión entre tradición milenaria y audacia moderna. Disfrute de la excelencia en el local o en casa.",
       btnMenu: "Descubrir la Carta",
       btnTraiteur: "Servicio de Catering"
     },
@@ -234,7 +234,7 @@ export const translations = {
       subtitle: "Opiniones",
       rating: "Calificado {note}/5 en más de 150 reseñas de Google.",
       items: [
-        { name: "Sophie M.", role: "Boda", text: "Una actuación excepcional para nuestra boda. El show cooking sorprendió a todos los invitados." },
+        { name: "Sophie M.", role: "Boda", text: "Servicio excepcional para nuestra boda. La calidad del buffet impresionó a todos los invitados." },
         { name: "Thomas D.", role: "Empresa", text: "Siempre puntual, bellamente presentado y delicioso. El mejor japonés de la zona." },
         { name: "Élodie & Marc", role: "Cena privée", text: "Un viaje a Japón sin salir de nuestro salón. Experiencia culinaria recomendada." }
       ]
@@ -245,43 +245,43 @@ export const translations = {
       call: "Llamar"
     },
     catering: {
-      title: "Eleve sus Eventos",
-      subtitle: "Empresas, Bodas, Cócteles.",
-      desc: "Ofrezca a sus invitados una animación culinaria espectacular y sabores inolvidables.",
+      title: "Servicio de Catering de Prestigio",
+      subtitle: "Excelencia japonesa para sus recepciones.",
+      desc: "Bodas, cócteles o cenas de empresa: creamos buffets de sushi refinados para todos sus eventos en Ginebra.",
       btnHero: "Solicitar presupuesto gratuito",
-      experienceTitle: "El Arte del Espectáculo Culinario",
+      experienceTitle: "El Arte de Recibir",
       blocs: [
         {
-          tag: "01. EL GESTO Y LA MAESTRÍA",
-          title: "Nuestros Maestros de Sushi en Escena",
-          desc: "Más que una comida, una actuación. Nuestros chefs preparan ante sus ojos con una precisión quirúrgica."
+          tag: "01. MAESTRÍA Y TRADICIÓN",
+          title: "La Excelencia de nuestros Maestros de Sushi",
+          desc: "Nuestros chefs, formados en técnicas tradicionales, preparan cada pieza con absoluto rigor para garantizar una experiencia auténtica."
         },
         {
-          tag: "02. EXIGENCIA ABSOLUTA",
-          title: "Una Frescura Intransigente",
-          desc: "Seleccionamos nuestros pescados a diario en las mejores pesquerías. Respeto estricto de la cadena de frío."
+          tag: "02. FRESCURA ABSOLUTA",
+          title: "Calidad Intransigente",
+          desc: "Seleccionamos nuestros pescados a diario para ofrecerle lo mejor del mar, respetando estrictamente los sabores naturales."
         },
         {
-          tag: "03. ESTÉTICA VISUAL",
-          title: "Obras de Arte Comestibles",
-          desc: "Nuestros montajes están diseñados como obras de arte, jugando con colores para realzar su evento."
+          tag: "03. REFINAMIENTO VISUAL",
+          title: "Elegancia en su Mesa",
+          desc: "Nuestros montajes están diseñados para realzar sus mesas, combinando la sobriedad japonesa con la estética moderna."
         }
       ],
       formSection: {
-        title: "Cree su Escena",
-        subtitle: "Cuéntenos su proyecto, lo convertiremos en un espectáculo inolvidable.",
+        title: "Su Presupuesto Personalizado",
+        subtitle: "Cuéntenos su proyecto, le responderemos con una propuesta a medida en menos de 24 horas.",
         name: "Nombre completo",
         email: "Email",
         type: "Tipo de evento",
-        types: ["Empresa / Seminario", "Boda de Prestigio", "Cumpleaños Privado", "Otro Cóctel"],
+        types: ["Evento de Empresa", "Boda", "Recepción Privada", "Cóctel"],
         guests: "Número de invitados",
-        vision: "Su Visión y Necesidades",
-        visionPlaceholder: "Cuéntenos su proyecto...",
-        submit: "Telón Arriba para mi Presupuesto",
+        vision: "Detalles de la recepción",
+        visionPlaceholder: "Fecha, lugar, deseos particulares...",
+        submit: "Solicitar mi Presupuesto",
         sending: "Enviando...",
-        successTitle: "¡Mensaje Recibido!",
-        successDesc: "Gracias por contactarnos. Nuestro equipo comercial le responderá en menos de 24 horas.",
-        successBtn: "Enviar otra solicitud"
+        successTitle: "Solicitud Enviada",
+        successDesc: "Gracias por contactarnos. Nuestro equipo estudiará su proyecto y le contactará muy pronto.",
+        successBtn: "Nueva solicitud"
       }
     },
     contact: {
