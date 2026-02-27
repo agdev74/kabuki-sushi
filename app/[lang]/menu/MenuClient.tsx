@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X } from "lucide-react";
+import { Search, Info } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
 import { supabase } from "@/utils/supabase";
 import PageLoader from "@/components/PageLoader";
+// ✅ Import du nouveau composant (à créer dans /components)
+import ProductModal from "@/components/ProductModal";
 
-// --- DÉFINITION DU TYPE POUR VOS SUSHIS ---
 export interface MenuItem {
   id: number;
   name_fr: string;
@@ -24,7 +25,6 @@ export interface MenuItem {
   is_available: boolean;
 }
 
-// --- FONCTIONS UTILITAIRES POUR L'OPTIMISATION DES IMAGES ---
 const shimmer = (w: number, h: number) => `
 <svg width="${w}" height="${h}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
@@ -40,11 +40,10 @@ const shimmer = (w: number, h: number) => `
 </svg>`;
 
 const toBase64 = (str: string) =>
-  typeof window === 'undefined'
-    ? Buffer.from(str).toString('base64')
-    : window.btoa(str);
+  typeof window === 'undefined' ? Buffer.from(str).toString('base64') : window.btoa(str);
 
-const MenuItemCard = ({ item }: { item: MenuItem }) => {
+// ✅ Ajout de la prop onClick pour ouvrir la modale
+const MenuItemCard = ({ item, onClick }: { item: MenuItem; onClick: () => void }) => {
   const { lang } = useTranslation();
   const [imgError, setImgError] = useState(false);
 
@@ -73,16 +72,17 @@ const MenuItemCard = ({ item }: { item: MenuItem }) => {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden hover:-translate-y-1 transition-all duration-300 group border border-neutral-700 hover:border-kabuki-red flex flex-col h-full"
+      onClick={onClick} // ✅ Rendre la carte cliquable
+      className="bg-neutral-800 rounded-lg shadow-lg overflow-hidden hover:-translate-y-1 transition-all duration-300 group border border-neutral-700 hover:border-kabuki-red flex flex-col h-full cursor-pointer relative"
     >
-      <div className="w-full bg-neutral-700 relative aspect-video overflow-hidden">
+      <div className="w-full bg-neutral-900 relative aspect-square overflow-hidden">
         {!imgError && item.image_url ? (
           <Image 
             src={item.image_url}
             alt={displayName || "Sushi Kabuki"}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
             placeholder="blur"
             blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(700, 475))}`}
             priority={item.id < 1005} 
@@ -93,6 +93,10 @@ const MenuItemCard = ({ item }: { item: MenuItem }) => {
             KABUKI SUSHI
           </div>
         )}
+        {/* Petit indicateur visuel au survol */}
+        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <Info size={14} />
+        </div>
       </div>
       
       <div className="p-3 flex flex-col flex-grow">
@@ -118,12 +122,12 @@ export default function MenuClient() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
+  // ✅ État pour gérer le produit sélectionné
+  const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     async function fetchPublicMenu() {
       setLoading(true);
-      
-      // ✅ Correction ici : on ne récupère que 'data', et on ignore 'error'
       const { data } = await supabase
         .from("menu_items")
         .select("*") 
@@ -142,11 +146,7 @@ export default function MenuClient() {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       item.name_fr?.toLowerCase().includes(searchLower) ||
-      item.description_fr?.toLowerCase().includes(searchLower) ||
-      item.name_en?.toLowerCase().includes(searchLower) ||
-      item.description_en?.toLowerCase().includes(searchLower) ||
-      item.name_es?.toLowerCase().includes(searchLower) ||
-      item.description_es?.toLowerCase().includes(searchLower);
+      item.description_fr?.toLowerCase().includes(searchLower);
 
     const matchesCategory = activeCategory === "Tous" || item.category === activeCategory;
     return matchesSearch && matchesCategory;
@@ -165,7 +165,7 @@ export default function MenuClient() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="bg-neutral-900 min-h-screen pb-20 pt-24">
+    <div className="bg-neutral-900 min-h-screen pb-20 pt-24 relative">
       <div className="bg-black text-white py-12 md:py-16 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0"></div>
         <Reveal>
@@ -187,17 +187,9 @@ export default function MenuClient() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={lang === "fr" ? "Rechercher un sushi, un ingrédient..." : lang === "es" ? "Buscar un sushi, ingrediente..." : "Search for sushi, ingredients..."}
-              className="w-full bg-black border border-neutral-800 rounded-full py-2.5 pl-12 pr-12 text-sm text-white focus:border-kabuki-red outline-none transition-all shadow-xl"
+              placeholder={lang === "fr" ? "Rechercher un sushi..." : "Search..."}
+              className="w-full bg-black border border-neutral-800 rounded-full py-2.5 pl-12 pr-12 text-sm text-white focus:border-kabuki-red outline-none shadow-xl"
             />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-              >
-                <X size={18} />
-              </button>
-            )}
           </div>
 
           <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:justify-center gap-2 pb-2 no-scrollbar">
@@ -205,7 +197,7 @@ export default function MenuClient() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest transition-all border ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest border transition-all ${
                   activeCategory === cat.id 
                   ? "bg-kabuki-red border-kabuki-red text-white" 
                   : "bg-neutral-800 border-neutral-700 text-gray-500 hover:text-white"
@@ -219,39 +211,47 @@ export default function MenuClient() {
       </div>
 
       <div className="container mx-auto px-4">
-        {filteredItems.length > 0 ? (
-          <AnimatePresence mode="popLayout">
-            {rawCategories.map((category) => {
-              const itemsInCategory = filteredItems.filter(item => item.category === category);
-              if (itemsInCategory.length === 0) return null;
+        <AnimatePresence mode="popLayout">
+          {rawCategories.map((category) => {
+            const itemsInCategory = filteredItems.filter(item => item.category === category);
+            if (itemsInCategory.length === 0) return null;
 
-              return (
-                <motion.section 
-                  key={category}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="mb-16"
-                >
-                  <h2 className="text-lg md:text-2xl font-bold text-white mb-8 pl-4 border-l-4 border-kabuki-red uppercase font-display tracking-widest">
-                    {(t.menu.categories as Record<string, string>)[category] || category}
-                  </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                    {itemsInCategory.map((item) => (
-                      <MenuItemCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                </motion.section>
-              );
-            })}
-          </AnimatePresence>
-        ) : (
-          <div className="text-center py-20 text-gray-500 italic">
-            {lang === "fr" ? "Aucun résultat pour votre recherche" : lang === "es" ? "No hay resultados para su búsqueda" : "No results found"}
-          </div>
-        )}
+            return (
+              <motion.section 
+                key={category}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="mb-16"
+              >
+                <h2 className="text-lg md:text-2xl font-bold text-white mb-8 pl-4 border-l-4 border-kabuki-red uppercase font-display tracking-widest">
+                  {(t.menu.categories as Record<string, string>)[category] || category}
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                  {itemsInCategory.map((item) => (
+                    <MenuItemCard 
+                        key={item.id} 
+                        item={item} 
+                        onClick={() => setSelectedProduct(item)} // ✅ Au clic, on définit le produit
+                    />
+                  ))}
+                </div>
+              </motion.section>
+            );
+          })}
+        </AnimatePresence>
       </div>
+
+      {/* ✅ Intégration de la modale avec animation de présence */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductModal 
+            item={selectedProduct} 
+            onClose={() => setSelectedProduct(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

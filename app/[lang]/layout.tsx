@@ -22,18 +22,39 @@ const oswald = Oswald({
   weight: ['400', '700'], 
 });
 
+// ✅ METADATA OPTIMISÉES POUR LE RÉFÉRENCEMENT GENEVOIS
 export const metadata: Metadata = {
+  metadataBase: new URL('https://kabuki-sushi.ch'),
   title: {
-    template: '%s | Kabuki Sushi',
-    default: 'Kabuki Sushi - Restaurant & Traiteur Japonais à Genève',
+    template: '%s | Kabuki Sushi Genève',
+    default: 'Kabuki Sushi | Restaurant & Traiteur Japonais de Prestige à Genève',
   },
-  description: "L'excellence du sushi à Genève (Plainpalais). Restaurant japonais, vente à emporter et service traiteur. 1 Boulevard de la Tour.",
-  keywords: ["Sushi", "Genève", "Traiteur", "Japonais", "Restaurant", "Maki", "Livraison", "Suisse", "Plainpalais"],
-  // ✅ AJOUT DU LOGO DANS L'ONGLET DU NAVIGATEUR
+  description: "L'excellence du sushi à Genève (Plainpalais). Savourez nos créations signatures sur place, à emporter ou via notre service traiteur d'exception pour vos événements privés et professionnels.",
+  keywords: [
+    "Sushi Genève", "Traiteur Japonais Genève", "Restaurant Japonais Plainpalais", 
+    "Livraison Sushi Genève", "Plateau Sushi Prestige", "Kabuki Sushi", 
+    "Sushi à emporter Genève", "Catering Japonais Suisse"
+  ],
+  authors: [{ name: "Kabuki Sushi" }],
+  creator: "Kabuki Sushi",
+  openGraph: {
+    type: "website",
+    locale: "fr_CH",
+    url: "https://kabuki-sushi.ch",
+    title: "Kabuki Sushi | L'Art du Sushi à Genève",
+    description: "Restaurant & Traiteur Japonais de Prestige. 1 Boulevard de la Tour, Genève.",
+    images: [{ url: "/images/og-image.jpg", width: 1200, height: 630, alt: "Kabuki Sushi Genève" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kabuki Sushi Genève",
+    description: "Restaurant & Traiteur Japonais de Prestige.",
+    images: ["/images/og-image.jpg"],
+  },
   icons: {
-    icon: "images/logo.png",
-    shortcut: "images/logo.png",
-    apple: "images/logo.png",
+    icon: "/images/logo.png",
+    shortcut: "/images/logo.png",
+    apple: "/images/logo.png",
   },
 };
 
@@ -63,6 +84,7 @@ export default function RootLayout({
 
           <Footer /> 
 
+          {/* ✅ DONNÉES STRUCTURÉES ENRICHIES (GOOGLE) */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -71,6 +93,7 @@ export default function RootLayout({
                 "@type": "Restaurant",
                 "name": "Kabuki Sushi Genève",
                 "image": "https://kabuki-sushi.ch/images/logo.png",
+                "description": "Restaurant japonais de prestige et service traiteur haut de gamme à Genève.",
                 "address": {
                   "@type": "PostalAddress",
                   "streetAddress": "1 Boulevard de la Tour",
@@ -86,7 +109,30 @@ export default function RootLayout({
                 "url": "https://kabuki-sushi.ch",
                 "telephone": "+41786041542",
                 "priceRange": "$$",
-                "servesCuisine": "Japanese, Sushi, Asian Food",
+                "servesCuisine": "Japanese, Sushi, Gourmet",
+                "hasMenu": "https://kabuki-sushi.ch/fr/menu",
+                "acceptsReservations": "true",
+                "areaServed": "Genève",
+                "hasOfferCatalog": {
+                  "@type": "OfferCatalog",
+                  "name": "Services",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Service Traiteur Événementiel"
+                      }
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Vente à emporter et Livraison"
+                      }
+                    }
+                  ]
+                },
                 "openingHoursSpecification": [
                   {
                     "@type": "OpeningHoursSpecification",
