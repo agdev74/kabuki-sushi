@@ -4,8 +4,20 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useTranslation } from "@/context/LanguageContext"; 
+import { z } from "zod"; // ✅ Validation de sécurité
 
-// ✅ Interface pour corriger l'erreur ESLint "Unexpected any"
+// ✅ Définition du schéma de validation (Anti-injection et formatage)
+const cateringSchema = z.object({
+  name: z.string().min(2, "Le nom est trop court").max(50),
+  email: z.string().email("Format d'email invalide"),
+  type: z.string().min(1, "Veuillez choisir un type"),
+  guests: z.preprocess(
+    (val) => Number(val), 
+    z.number().min(1, "Minimum 1 personne").max(1000)
+  ),
+  vision: z.string().min(10, "Détaillez un peu plus votre projet (min. 10 caract.)").max(2000),
+});
+
 interface CateringBloc {
   tag: string;
   title: string;
@@ -16,12 +28,39 @@ export default function TraiteurPage() {
   const { t } = useTranslation(); 
   
   const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errors, setErrors] = useState<Record<string, string>>({}); // ✅ Gestion des erreurs UI
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setErrors({}); // Reset des erreurs précédentes
+    
+    // Extraction des données via FormData
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      type: formData.get("type"),
+      guests: formData.get("guests"),
+      vision: formData.get("vision"),
+    };
+
+    // ✅ Validation avec Zod
+    const result = cateringSchema.safeParse(data);
+
+    if (!result.success) {
+      const formattedErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        // ✅ Correction TypeScript : Conversion explicite du path en string
+        const fieldName = String(issue.path[0]);
+        formattedErrors[fieldName] = issue.message;
+      });
+      setErrors(formattedErrors);
+      return;
+    }
+
     setFormStatus("submitting");
 
-    // Simulation d'un envoi (2 secondes d'attente)
+    // Simulation d'envoi sécurisé
     setTimeout(() => {
       setFormStatus("success");
       window.location.href = "#devis"; 
@@ -42,7 +81,6 @@ export default function TraiteurPage() {
         <div className="absolute top-0 right-0 w-1/3 h-full bg-kabuki-red/10 skew-x-12 transform translate-x-20"></div>
         
         <div className="container mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center gap-12">
-          
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -102,7 +140,6 @@ export default function TraiteurPage() {
           </motion.div>
 
           <div className="space-y-24">
-            {/* ✅ Typage ajouté ici : (bloc: CateringBloc, ...) */}
             {t.catering.blocs.map((bloc: CateringBloc, index: number) => (
               <motion.div 
                 key={index}
@@ -180,32 +217,56 @@ export default function TraiteurPage() {
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.name}</label>
-                      <input required type="text" className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500" placeholder="..." />
+                      <input 
+                        name="name" 
+                        type="text" 
+                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="..." 
+                      />
+                      {errors.name && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.email}</label>
-                      <input required type="email" className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500" placeholder="..." />
+                      <input 
+                        name="email" 
+                        type="email" 
+                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="..." 
+                      />
+                      {errors.email && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.type}</label>
-                      <select className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none appearance-none">
+                      <select name="type" className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none appearance-none cursor-pointer">
                         {t.catering.formSection.types.map((type: string) => (
-                          <option key={type}>{type}</option>
+                          <option key={type} value={type}>{type}</option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.guests}</label>
-                      <input required type="number" className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500" placeholder="Ex: 80" />
+                      <input 
+                        name="guests" 
+                        type="number" 
+                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.guests ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="Ex: 80" 
+                      />
+                      {errors.guests && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.guests}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.vision}</label>
-                    <textarea required rows={5} className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500 resize-none" placeholder={t.catering.formSection.visionPlaceholder}></textarea>
+                    <textarea 
+                      name="vision" 
+                      rows={5} 
+                      className={`w-full bg-neutral-800 text-white border-b-2 ${errors.vision ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500 resize-none`} 
+                      placeholder={t.catering.formSection.visionPlaceholder}
+                    ></textarea>
+                    {errors.vision && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.vision}</p>}
                   </div>
 
                   <div className="text-center pt-6">
