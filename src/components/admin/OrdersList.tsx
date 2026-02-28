@@ -51,16 +51,16 @@ export default function OrdersList() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
 
-  // ✅ Référence pour l'objet Audio
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Initialisation du son (Chemin: public/sounds/notification.wav)
+    // Initialisation du son (public/sounds/notification.wav)
     audioRef.current = new Audio("/sounds/notification.wav");
   }, []);
 
   const playNotification = useCallback(() => {
     if (isSoundEnabled && audioRef.current) {
+      audioRef.current.currentTime = 0;
       audioRef.current.play().catch(err => console.log("Lecture audio bloquée :", err));
     }
   }, [isSoundEnabled]);
@@ -71,6 +71,8 @@ export default function OrdersList() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
+        // ✅ On masque les commandes qui n'ont pas encore fini le paiement Stripe
+        .neq("status", "Paiement en cours") 
         .order("created_at", { ascending: false });
 
       if (data) setOrders(data as Order[]);
@@ -101,16 +103,28 @@ export default function OrdersList() {
   useEffect(() => {
     fetchOrders();
 
-    // ✅ Écoute en temps réel : Distingue les créations des mises à jour
     const subscription = supabase
       .channel("kitchen-orders-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, () => {
-        playNotification(); // 🔔 Sonnerie pour la nouvelle commande
-        fetchOrders();      // Mise à jour de la liste
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, () => {
-        fetchOrders();      // Rafraîchissement simple pour les changements de statut
-      })
+      .on(
+        "postgres_changes", 
+        { event: "UPDATE", schema: "public", table: "orders" }, 
+        (payload) => {
+          // ✅ LOGIQUE DE NOTIFICATION :
+          // Si une commande passe de "Paiement en cours" à "Payé", on déclenche l'alerte
+          if (payload.old?.status === "Paiement en cours" && payload.new?.status === "Payé") {
+            playNotification();
+          }
+          fetchOrders();
+        }
+      )
+      .on(
+        "postgres_changes", 
+        { event: "INSERT", schema: "public", table: "orders" }, 
+        () => {
+          // On rafraîchit la liste (elle restera filtrée si le statut est "Paiement en cours")
+          fetchOrders();
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
@@ -136,7 +150,6 @@ export default function OrdersList() {
 
   return (
     <div className="space-y-6">
-      {/* Header avec contrôle Son */}
       <div className="flex justify-between items-center bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex-wrap gap-4">
         <div className="flex items-center gap-6">
           <h2 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
@@ -238,7 +251,6 @@ export default function OrdersList() {
                   </div>
                 )}
 
-                {/* ✅ Bloc Commentaires avec correction d'entité */}
                 {selectedOrder.comments && (
                   <div className="bg-amber-500/5 p-5 rounded-3xl border border-amber-500/10">
                     <span className="text-[10px] text-amber-500 uppercase font-bold flex items-center gap-2 mb-2">

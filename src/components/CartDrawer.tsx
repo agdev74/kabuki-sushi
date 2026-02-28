@@ -25,9 +25,9 @@ const cartTranslations = {
 };
 
 interface CartDrawerProps { isOpen: boolean; onClose: () => void; }
-interface StripeCheckoutFormProps { total: number; onSuccess: () => void; onCancel: () => void; t: Record<string, string>; }
+interface StripeCheckoutFormProps { total: number; onSuccess: () => void; onCancel: () => void; t: Record<string, string>; orderId: number; }
 
-function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFormProps) {
+function StripeCheckoutForm({ total, onSuccess, onCancel, t, orderId }: StripeCheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,6 +45,12 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
       setErrorMessage(response.error.message ?? t.paymentError);
       setIsProcessing(false);
     } else if (response.paymentIntent && response.paymentIntent.status === "succeeded") {
+      // ✅ ÉTAPE CRUCIALE : On passe le statut à "Payé" SEULEMENT maintenant
+      await supabase
+        .from('orders')
+        .update({ status: 'Payé' })
+        .eq('id', orderId);
+        
       onSuccess();
     } else {
       setIsProcessing(false);
@@ -124,8 +130,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         delivery_zip: formData.type === "Livraison" ? formData.zip : null, 
         total_amount: totalPrice,
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), 
-        status: "En attente",
-        // ✅ Ajout des commentaires/instructions ici
+        // ✅ Statut initial "silencieux" pour la cuisine
+        status: "Paiement en cours",
         comments: formData.comments 
       }]).select();
       
@@ -165,9 +171,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 
                 <button onClick={() => { onClose(); window.location.href = `/${lang}/track?order_id=${orderId}`; }} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase shadow-lg shadow-red-900/20">Suivre ma commande</button>
               </div>
-            ) : isPayment && clientSecret ? (
+            ) : isPayment && clientSecret && orderId ? (
               <Elements options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#dc2626' } } }} stripe={stripePromise}>
-                <StripeCheckoutForm total={totalPrice} onSuccess={() => { clearCart(); setIsPayment(false); setIsSuccess(true); }} onCancel={() => setIsPayment(false)} t={t} />
+                <StripeCheckoutForm 
+                  total={totalPrice} 
+                  orderId={orderId} 
+                  onSuccess={() => { clearCart(); setIsPayment(false); setIsSuccess(true); }} 
+                  onCancel={() => setIsPayment(false)} 
+                  t={t} 
+                />
               </Elements>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
