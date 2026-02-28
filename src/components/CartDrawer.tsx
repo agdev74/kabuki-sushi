@@ -12,7 +12,7 @@ import { supabase } from "@/utils/supabase";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-// Initialisation de Stripe (À l'extérieur du composant pour éviter les rechargements)
+// Initialisation de Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const cartTranslations = {
@@ -104,7 +104,7 @@ const cartTranslations = {
     items: "artículo",
     itemsPlural: "artículos",
     clearCart: "Vaciar carrito",
-    name: "Nombre Complet *",
+    name: "Nombre Completo *",
     namePlaceholder: "Juan Pérez",
     phone: "Teléfono *",
     date: "Fecha de entrega *",
@@ -119,7 +119,7 @@ const cartTranslations = {
     floorPlaceholder: "Ej: 4",
     code: "Código de puerta",
     codePlaceholder: "Ej: A123",
-    comments: "Instrucciones especiales",
+    comments: "Instrucciones spéciales",
     commentsPlaceholder: "Sin wasabi, allergia al sésamo...",
     totalEstimated: "Total a pagar",
     btnValidate: "Ir a la caja",
@@ -130,9 +130,9 @@ const cartTranslations = {
     tomorrow: "Mañana",
     sending: "Generando pago...",
     processing: "Procesando...",
-    paymentError: "El pago falló. Por favor, inténtelo de nuevo.",
+    paymentError: "El pago falló. Por favor, inténtelo de nouveau.",
     successTitle: "¡Pago exitoso!",
-    successDesc: "Su pedido ha sido pagado y confirmado por nuestra cocina.",
+    successDesc: "Su pedido ha sido pagado et confirmé par notre cuisine.",
     btnClose: "Cerrar",
     cancelPayment: "Cancelar y editar pedido"
   }
@@ -154,7 +154,6 @@ interface CartDrawerProps {
   onClose: () => void;
 }
 
-// ✅ TYPAGE DU FORMULAIRE DE PAIEMENT SANS ORDERID (Inutile ici car géré par le Webhook)
 interface StripeCheckoutFormProps {
   total: number;
   onSuccess: () => void;
@@ -178,18 +177,15 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
     setIsProcessing(true);
     setErrorMessage("");
 
-    // 1. On tente de confirmer le paiement
     const result = await stripe.confirmPayment({
       elements,
       redirect: "if_required", 
     });
 
     if (result.error) {
-      // ✅ Correction Vercel : result.error contient le message
-      setErrorMessage(result.error.message || t.paymentError);
+      setErrorMessage(result.error.message ?? t.paymentError);
       setIsProcessing(false);
     } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
-      // ✅ Succès ! Le Webhook s'occupe de mettre à jour le statut dans la BDD
       onSuccess();
     } else {
       setIsProcessing(false);
@@ -203,16 +199,13 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
           <ShieldCheck size={24} />
           <p className="text-xs font-bold uppercase tracking-widest">Connexion chiffrée SSL</p>
         </div>
-        
         <PaymentElement options={{ layout: "tabs" }} />
-        
         {errorMessage && (
           <div className="text-red-500 text-xs font-bold bg-red-900/20 p-3 rounded-xl border border-red-900/30">
             ⚠️ {errorMessage}
           </div>
         )}
       </div>
-
       <div className="p-6 border-t border-neutral-800 bg-neutral-900 shrink-0 space-y-3">
         <button 
           type="submit" 
@@ -242,13 +235,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [isCheckout, setIsCheckout] = useState(false);
   const [isPayment, setIsPayment] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const MIN_DELIVERY_AMOUNT = 25;
-
   const [formData, setFormData] = useState({
     name: "", phone: "", type: "Click & Collect", 
     address: "", zip: "", floor: "", doorCode: "", comments: "",
@@ -326,9 +317,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       if (paymentData.error) throw new Error(paymentData.error);
       setClientSecret(paymentData.clientSecret);
       setIsPayment(true);
-    } catch (error) {
-      const err = error as Error;
-      alert(`Erreur : ${err.message || "Impossible de contacter la banque."}`);
+    // ✅ FIX ESLINT : Plus de "any", on cast l'erreur proprement
+    } catch (err) {
+      const error = err as Error;
+      alert(`Erreur : ${error.message || "Impossible de contacter la banque."}`);
     } finally {
       setIsSubmitting(false);
     }
