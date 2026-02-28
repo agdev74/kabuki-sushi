@@ -7,8 +7,6 @@ import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
 import { supabase } from "@/utils/supabase"; 
-
-// ✅ IMPORTS STRIPE
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -19,14 +17,13 @@ const cartTranslations = {
     titleCart: "Mon Panier", titleCheckout: "Validation", titlePayment: "Paiement Sécurisé", emptyCart: "Votre panier est vide", items: "article", itemsPlural: "articles", clearCart: "Vider le panier", name: "Nom Complet *", namePlaceholder: "Jean Dupont", phone: "Téléphone *", date: "Date *", time: "Heure *", pickupMode: "Mode de retrait *", takeaway: "À Emporter", delivery: "Livraison", address: "Adresse *", addressPlaceholder: "Rue des Alpes 12", zip: "NPA *", floor: "Étage", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions / Allergies", commentsPlaceholder: "Sans wasabi...", totalEstimated: "Total à payer", btnValidate: "Passer à la caisse", btnPay: "Payer la commande", minOrderError: "Minimum 25 CHF requis.", noTimeSlots: "Aucun horaire disponible.", today: "Aujourd'hui", tomorrow: "Demain", sending: "Génération...", processing: "Traitement...", paymentError: "Le paiement a échoué.", successTitle: "Paiement réussi !", successDesc: "Votre commande est validée.", btnClose: "Fermer", cancelPayment: "Annuler"
   },
   en: {
-    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty cart", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Phone *", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel"
+    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Phone *", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel"
   },
   es: {
-    titleCart: "Mi Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Procesando...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar"
+    titleCart: "Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Procesando...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar"
   }
 };
 
-// ✅ INTERFACES
 interface CartDrawerProps { isOpen: boolean; onClose: () => void; }
 interface StripeCheckoutFormProps { total: number; onSuccess: () => void; onCancel: () => void; t: Record<string, string>; }
 
@@ -36,18 +33,19 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleStripeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
     setIsProcessing(true);
     setErrorMessage("");
 
-    const result = await stripe.confirmPayment({ elements, redirect: "if_required" });
+    const response = await stripe.confirmPayment({ elements, redirect: "if_required" });
 
-    if (result.error) {
-      setErrorMessage(result.error.message ?? t.paymentError);
+    if (response.error) {
+      // ✅ Ici on utilise "response.error.message" : TypeScript ne peut pas se tromper
+      setErrorMessage(response.error.message ?? t.paymentError);
       setIsProcessing(false);
-    } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
+    } else if (response.paymentIntent && response.paymentIntent.status === "succeeded") {
       onSuccess();
     } else {
       setIsProcessing(false);
@@ -55,10 +53,10 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+    <form onSubmit={handleStripeSubmit} className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl flex items-center gap-3 text-green-500">
-          <ShieldCheck size={24} /><p className="text-xs font-bold uppercase">SSL Encrypted</p>
+          <ShieldCheck size={24} /><p className="text-xs font-bold uppercase">Sécurisation SSL</p>
         </div>
         <PaymentElement options={{ layout: "tabs" }} />
         {errorMessage && <div className="text-red-500 text-xs font-bold bg-red-900/20 p-3 rounded-xl">⚠️ {errorMessage}</div>}
@@ -88,10 +86,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [formData, setFormData] = useState({ name: "", phone: "", type: "Click & Collect", address: "", zip: "", floor: "", doorCode: "", comments: "" });
   
   const days = [];
-  const todayDate = new Date();
+  const start = new Date();
   for (let i = 0; i < 14; i++) {
-    const d = new Date(todayDate);
-    d.setDate(todayDate.getDate() + i);
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
     if (d.getDay() !== 1) days.push(d); 
   }
   
@@ -111,17 +109,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   const isFormReady = (formData.type !== "Livraison" || totalPrice >= 25) && selectedDate && selectedTime !== "";
 
-  const handlePreparePayment = async (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormReady) return;
     setIsSubmitting(true);
     try {
-      const { data, error: sbError } = await supabase.from('orders').insert([{
+      const { data, error } = await supabase.from('orders').insert([{
         customer_name: formData.name, customer_phone: formData.phone, pickup_date: selectedDate?.toISOString().split('T')[0],
         pickup_time: selectedTime, order_type: formData.type, delivery_address: formData.address, total_amount: totalPrice,
-        items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), status: "En attente de paiement"
+        items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), status: "En attente"
       }]).select();
-      if (sbError) throw sbError;
+      if (error) throw error;
       const newId = data[0].id;
       setOrderId(newId);
       const res = await fetch("/api/create-payment-intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: totalPrice, orderId: newId }) });
@@ -130,8 +128,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       setClientSecret(payData.clientSecret);
       setIsPayment(true);
     } catch (err: unknown) {
-      const error = err as Error;
-      alert(`Erreur : ${error.message}`);
+      const errorObj = err as Error;
+      alert(`Erreur : ${errorObj.message}`);
     } finally { setIsSubmitting(false); }
   };
 
@@ -163,7 +161,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                  {items.length === 0 ? <p className="text-center text-gray-500 uppercase tracking-widest py-20">{t.emptyCart}</p> : 
+                  {items.length === 0 ? <p className="text-center text-gray-500 uppercase py-20">{t.emptyCart}</p> : 
                     !isCheckout ? (
                       <div className="space-y-6">
                         <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-2 border-b border-neutral-800 pb-2"><ShoppingBag size={12} /> {totalItems} {totalItems > 1 ? t.itemsPlural : t.items}</div>
@@ -171,19 +169,23 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           <div key={i.id} className="flex gap-4 items-center bg-black/40 p-3 rounded-2xl border border-neutral-800/50">
                             <div className="w-16 h-16 relative bg-neutral-800 rounded-xl overflow-hidden shrink-0">{i.image_url && <Image src={i.image_url} alt={i.name} fill className="object-cover" />}</div>
                             <div className="flex-1"><h4 className="text-white font-bold text-sm uppercase">{i.name}</h4><div className="text-kabuki-red font-bold text-xs">{(i.price * i.quantity).toFixed(2)} CHF</div></div>
-                            <div className="flex items-center gap-3 bg-neutral-800 rounded-full px-2 py-1"><button onClick={() => updateQuantity(i.id, i.quantity - 1)} className="text-white hover:text-kabuki-red transition"><Minus size={14} /></button><span className="text-white text-xs font-bold">{i.quantity}</span><button onClick={() => updateQuantity(i.id, i.quantity + 1)} className="text-white hover:text-kabuki-red transition"><Plus size={14} /></button></div>
+                            <div className="flex items-center gap-3 bg-neutral-800 rounded-full px-2 py-1">
+                              <button onClick={() => updateQuantity(i.id, i.quantity - 1)} className="text-white hover:text-kabuki-red transition"><Minus size={14} /></button>
+                              <span className="text-white text-xs font-bold">{i.quantity}</span>
+                              <button onClick={() => updateQuantity(i.id, i.quantity + 1)} className="text-white hover:text-kabuki-red transition"><Plus size={14} /></button>
+                            </div>
                             <button onClick={() => removeFromCart(i.id)} className="text-gray-500 hover:text-kabuki-red transition"><Trash2 size={16} /></button>
                           </div>
                         ))}
-                        <button onClick={clearCart} className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-2 mx-auto"><Trash2 size={12} /> {t.clearCart}</button>
+                        <button onClick={clearCart} className="text-[10px] text-gray-400 hover:text-kabuki-red font-bold uppercase flex items-center gap-2 mx-auto transition"><Trash2 size={12} /> {t.clearCart}</button>
                       </div>
                     ) : (
-                      <form id="checkout-form" onSubmit={handlePreparePayment} className="space-y-6">
+                      <form id="checkout-form" onSubmit={handleFinalSubmit} className="space-y-6">
                         <input required placeholder={t.namePlaceholder} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />
                         <input required type="tel" placeholder="079..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><Calendar size={12} /> {t.date}</label>
-                          <div className="flex gap-2 overflow-x-auto pb-2">{days.map((d, idx) => (
+                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{days.map((d, idx) => (
                             <button key={idx} type="button" onClick={() => { setSelectedDate(d); setSelectedTime(""); }} className={`shrink-0 px-4 py-2 rounded-xl border text-xs font-bold transition ${selectedDate?.toDateString() === d.toDateString() ? "bg-kabuki-red border-kabuki-red text-white" : "bg-neutral-800 border-neutral-700 text-gray-400"}`}>{d.toLocaleDateString(lang, { day: 'numeric', month: 'short' })}</button>
                           ))}</div>
                         </div>
@@ -203,7 +205,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 {items.length > 0 && (
                   <div className="p-6 border-t border-neutral-800 bg-neutral-900 shrink-0">
                     <div className="flex justify-between items-center mb-4"><span className="text-gray-400 text-xs font-bold uppercase tracking-widest">{t.totalEstimated}</span><span className="text-2xl font-display font-bold text-white">{totalPrice.toFixed(2)} CHF</span></div>
-                    {!isCheckout ? <button onClick={() => setIsCheckout(true)} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-red-700 transition">{t.btnValidate} <ArrowRight size={16} /></button> : <button type="submit" form="checkout-form" disabled={!isFormReady || isSubmitting} className={`w-full font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 transition ${isFormReady && !isSubmitting ? "bg-kabuki-red text-white hover:bg-red-700 shadow-red-900/20" : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}>{isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {t.sending}</> : <><ShieldCheck size={18} /> Continuer</>}</button>}
+                    {!isCheckout ? <button onClick={() => setIsCheckout(true)} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg">{t.btnValidate} <ArrowRight size={16} /></button> : <button type="submit" form="checkout-form" disabled={!isFormReady || isSubmitting} className={`w-full font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 transition ${isFormReady && !isSubmitting ? "bg-kabuki-red text-white hover:bg-red-700" : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}>{isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {t.sending}</> : <><ShieldCheck size={18} /> Continuer</>}</button>}
                   </div>
                 )}
               </div>
