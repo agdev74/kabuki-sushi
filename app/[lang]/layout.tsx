@@ -3,7 +3,8 @@ import { Inter, Oswald } from "next/font/google";
 import "../globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
-import LayoutClient from "@/components/LayoutClient"; // ✅ Import du wrapper client
+import LayoutClient from "@/components/LayoutClient"; 
+import ActiveOrderButton from "@/components/ActiveOrderButton"; // ✅ 1. Ajout de l'import du bouton
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -51,6 +52,9 @@ export default function RootLayout({
             <LayoutClient>
               {children}
             </LayoutClient>
+
+            {/* ✅ 2. Ajout du bouton flottant ici, accessible sur tout le site */}
+            <ActiveOrderButton />
 
             {/* DONNÉES STRUCTURÉES GOOGLE */}
             <script
