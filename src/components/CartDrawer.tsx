@@ -104,7 +104,7 @@ const cartTranslations = {
     items: "artículo",
     itemsPlural: "artículos",
     clearCart: "Vaciar carrito",
-    name: "Nombre Completo *",
+    name: "Nombre Complet *",
     namePlaceholder: "Juan Pérez",
     phone: "Teléfono *",
     date: "Fecha de entrega *",
@@ -119,13 +119,13 @@ const cartTranslations = {
     floorPlaceholder: "Ej: 4",
     code: "Código de puerta",
     codePlaceholder: "Ej: A123",
-    comments: "Instrucciones spéciales",
-    commentsPlaceholder: "Sin wasabi, alergia al sésamo...",
+    comments: "Instrucciones especiales",
+    commentsPlaceholder: "Sin wasabi, allergia al sésamo...",
     totalEstimated: "Total a pagar",
     btnValidate: "Ir a la caja",
     btnPay: "Pagar pedido",
     minOrderError: "Mínimo de 25 CHF requerido para entrega.",
-    noTimeSlots: "No hay horarios disponibles para esta fecha.",
+    noTimeSlots: "No hay horarios disponibles para cette date.",
     today: "Hoy",
     tomorrow: "Mañana",
     sending: "Generando pago...",
@@ -185,6 +185,7 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
     });
 
     if (result.error) {
+      // ✅ Correction Vercel : result.error contient le message
       setErrorMessage(result.error.message || t.paymentError);
       setIsProcessing(false);
     } else if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
