@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic"; // ✅ Ajout de l'import dynamique
 import Navbar from "@/components/Navbar";
 import MobileActionBar from "@/components/MobileActionBar";
-import PageLoader from "@/components/PageLoader";
+
 import ScrollToTop from "@/components/ScrollToTop";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
@@ -24,7 +24,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <PageLoader />
+    
       
       {/* On passe openCart à la Navbar pour l'icône panier desktop/mobile */}
       <Navbar onOpenCart={openCart} />
