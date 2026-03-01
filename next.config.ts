@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/(:path*)',
+        source: '/(.*)',
         headers: [
           // ✅ AMÉLIORÉ : ajout des domaines manquants (Resend, maps pour livraison)
           {
