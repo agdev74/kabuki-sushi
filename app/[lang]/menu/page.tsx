@@ -1,14 +1,16 @@
 import { Metadata } from "next";
 import MenuClient from "./MenuClient";
 
+// ✅ On s'assure que params est bien une Promise
 type Props = {
-  params: { lang: string };
+  params: Promise<{ lang: string }>;
 };
 
+// ✅ On ajoute await devant params
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const lang = params.lang || "fr";
+  const resolvedParams = await params;
+  const lang = resolvedParams.lang || "fr";
   
-  // ✅ On remplace 'any' par un dictionnaire strict
   const titles: Record<string, string> = {
     fr: "Notre Carte | 97 Créations Originales",
     en: "Our Menu | 97 Original Sushi Creations",
@@ -16,9 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 
   const descriptions: Record<string, string> = {
-    fr: "Découvrez nos 97 produits : Nigiris, Makis, Signatures et Box à partager.",
-    en: "Explore our 97 products: Nigiris, Makis, Signatures, and Boxes to share.",
-    es: "Descubre nuestros 97 productos: Nigiris, Makis, Signatures y Boxes para compartir.",
+    fr: "Découvrez nos 97 produits : Nigiris, Makis, Signatures et Box à partager. À emporter ou en livraison.",
+    en: "Explore our 97 products: Nigiris, Makis, Signatures, and Boxes to share. Takeaway or delivery.",
+    es: "Descubre nuestros 97 productos: Nigiris, Makis, Signatures y Boxes para compartir. Para llevar o a domicilio.",
   };
 
   return {
@@ -27,7 +29,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// ✅ On retire 'params' car il n'est pas utilisé dans le composant (règle ESLint)
 export default function MenuPage() {
   return <MenuClient />;
 }
