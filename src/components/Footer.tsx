@@ -16,7 +16,7 @@ export default function Footer() {
 
   // Liens Réseaux Sociaux (À adapter avec tes vrais profils)
   const socialLinks = [
-    { icon: <Instagram size={18} />, href: "https://instagram.com/kabuki_sushi_geneve", label: "Instagram" },
+    { icon: <Instagram size={18} />, href: "https://www.instagram.com/kabuki_geneve/", label: "Instagram" },
     { icon: <Facebook size={18} />, href: "https://facebook.com/kabukisushigeneve", label: "Facebook" },
     { icon: <Globe size={18} />, href: "https://www.tripadvisor.ch/", label: "TripAdvisor" }, // Optionnel mais recommandé
   ];
