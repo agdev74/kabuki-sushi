@@ -155,7 +155,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setIsVerifyingCoupon(false);
   };
 
-  const isDeliveryValid = formData.type !== "Livraison" || (totalPrice >= 25 && formData.address.trim() !== "" && formData.zip.trim() !== "");
+  // ✅ VÉRIFICATION GENÈVE (NPA commence par 12 et fait 4 chiffres)
+  const isGenevaZip = (zip: string) => /^12\d{2}$/.test(zip.trim());
+
+  const isDeliveryValid = formData.type !== "Livraison" || (
+    totalPrice >= 25 && 
+    formData.address.trim() !== "" && 
+    isGenevaZip(formData.zip) // On exige le NPA genevois
+  );
+  
   const isFormReady = selectedDate && selectedTime !== "" && formData.name.trim() !== "" && formData.phone.trim() !== "" && isDeliveryValid;
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
@@ -331,10 +339,40 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                               <div className="space-y-3 bg-neutral-900/50 p-4 rounded-xl border border-neutral-800 shadow-inner">
                                 <label htmlFor="delivery_address" className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><MapPin size={12} aria-hidden="true" /> {t.address}</label>
                                 <input id="delivery_address" required={formData.type === "Livraison"} placeholder={t.addressPlaceholder} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                
                                 <div className="grid grid-cols-2 gap-3">
-                                  <input id="zip_code" required={formData.type === "Livraison"} placeholder={t.zip} value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
-                                  <input id="floor_number" placeholder={t.floorPlaceholder} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                  <input 
+                                    id="zip_code" 
+                                    required={formData.type === "Livraison"} 
+                                    placeholder={t.zip} 
+                                    value={formData.zip} 
+                                    onChange={e => setFormData({...formData, zip: e.target.value})} 
+                                    maxLength={4}
+                                    className={`w-full bg-black text-white border rounded-lg px-4 py-2 text-sm outline-none transition ${formData.zip.length === 4 && !isGenevaZip(formData.zip) ? "border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "border-neutral-800 focus:border-kabuki-red"}`} 
+                                  />
+                                  <input 
+                                    id="floor_number" 
+                                    placeholder={t.floorPlaceholder} 
+                                    value={formData.floor} 
+                                    onChange={e => setFormData({...formData, floor: e.target.value})} 
+                                    className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" 
+                                  />
                                 </div>
+                                
+                                {/* ⚠️ Alerte NPA invalide */}
+                                <AnimatePresence>
+                                  {formData.type === "Livraison" && formData.zip.length === 4 && !isGenevaZip(formData.zip) && (
+                                    <motion.p 
+                                      initial={{ opacity: 0, height: 0 }} 
+                                      animate={{ opacity: 1, height: "auto" }} 
+                                      exit={{ opacity: 0, height: 0 }} 
+                                      className="text-red-500 text-[10px] font-bold mt-1 text-center uppercase"
+                                    >
+                                      Nous livrons uniquement dans le canton de Genève (12xx).
+                                    </motion.p>
+                                  )}
+                                </AnimatePresence>
+
                                 <input id="door_code" placeholder={t.codePlaceholder} value={formData.doorCode} onChange={e => setFormData({...formData, doorCode: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
                               </div>
                             </motion.div>

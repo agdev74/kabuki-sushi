@@ -24,6 +24,19 @@ export async function POST(request: Request) {
         pickupDate, pickupTime, orderType, deliveryAddress, deliveryZip, comments 
     } = body;
 
+    // --- 1.5 SÉCURITÉ : Vérification de la zone de livraison (Genève uniquement) ---
+    if (orderType === "Livraison") {
+      // Vérifie si le code postal commence par 12 et contient exactement 4 chiffres
+      const isGenevaZip = /^12\d{2}$/.test(String(deliveryZip).trim());
+      
+      if (!isGenevaZip) {
+        return NextResponse.json(
+          { error: "La livraison est restreinte au canton de Genève (NPA 12xx)." }, 
+          { status: 400 }
+        );
+      }
+    }
+
     let finalAmount = amount;
     let discountApplied = 0;
 
