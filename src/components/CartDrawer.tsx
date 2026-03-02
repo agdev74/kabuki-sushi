@@ -163,45 +163,41 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     if (!isFormReady) return;
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.from('orders').insert([{
-        customer_name: formData.name, 
-        customer_phone: formData.phone, 
-        pickup_date: selectedDate?.toISOString().split('T')[0],
-        pickup_time: selectedTime, 
-        order_type: formData.type, 
-        delivery_address: formData.type === "Livraison" ? `${formData.address} ${formData.floor ? '(Ét.'+formData.floor+')' : ''} ${formData.doorCode ? '[Code:'+formData.doorCode+']' : ''}` : null, 
-        delivery_zip: formData.type === "Livraison" ? formData.zip : null, 
-        total_amount: finalPrice, // ✅ Utilisation du prix après coupon
-        discount_amount: discountAmount, // ✅ Historique
-        coupon_code: appliedCoupon?.code || null, // ✅ Historique
-        items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), 
-        status: "Paiement en cours",
-        comments: formData.comments 
-      }]).select();
-      
-      if (error) throw error;
-      const newId = data[0].id;
-      setOrderId(newId);
-
-      // ✅ Envoi du code promo au backend pour vérification sécurisée
+      // ✅ ON ENVOIE TOUT AU BACKEND
       const res = await fetch("/api/create-payment-intent", { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ 
-          amount: finalPrice, 
-          orderId: newId,
-          couponCode: appliedCoupon?.code 
+          amount: totalPrice, // On envoie le total brut, le serveur recalculera la réduc pour la sécurité
+          couponCode: appliedCoupon?.code,
+          items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+          customerName: formData.name,
+          customerPhone: formData.phone,
+          pickupDate: selectedDate?.toISOString().split('T')[0],
+          pickupTime: selectedTime,
+          orderType: formData.type,
+          deliveryAddress: formData.type === "Livraison" ? `${formData.address} ${formData.floor ? '(Ét.'+formData.floor+')' : ''} ${formData.doorCode ? '[Code:'+formData.doorCode+']' : ''}` : null,
+          deliveryZip: formData.type === "Livraison" ? formData.zip : null,
+          comments: formData.comments
         }) 
       });
-      const payData = await res.json();
-      if (payData.error) throw new Error(payData.error);
       
+      const payData = await res.json();
+      
+      if (payData.error) throw new Error(payData.error);
+      if (!payData.clientSecret || !payData.orderId) throw new Error("Réponse API invalide");
+      
+      // L'API nous retourne l'ID fraîchement créé et le secret Stripe
+      setOrderId(payData.orderId);
       setClientSecret(payData.clientSecret);
       setIsPayment(true);
+      
     } catch (err: unknown) {
       const errorObj = err as Error;
       alert(`Erreur : ${errorObj.message}`);
-    } finally { setIsSubmitting(false); }
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   return (
@@ -294,7 +290,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </div>
                     ) : (
                       <form id="checkout-form" onSubmit={handleFinalSubmit} className="space-y-6">
-                        {/* Formulaire inchangé... */}
                         <div className="space-y-1">
                             <label htmlFor="customer_name" className="text-[10px] font-bold text-gray-400 uppercase ml-1">{t.name}</label>
                             <input id="customer_name" required placeholder={t.namePlaceholder} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />

@@ -6,11 +6,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16" as Stripe.LatestApiVersion,
 });
 
-// ✅ FIX 2 : Client service_role — bypass RLS pour les opérations serveur
-// Ce client ne doit JAMAIS être utilisé côté browser
+// ✅ Client service_role — bypass RLS pour les opérations serveur
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // ⚠️ Jamais NEXT_PUBLIC_
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, 
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
@@ -18,55 +17,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // ✅ FIX 1 : On ne reçoit plus "amount" du client
-    // On reçoit uniquement l'orderId et le couponCode
-    // Le montant est recalculé ICI depuis la DB
-    const { orderId, couponCode } = body;
+    // On reçoit TOUTES les infos nécessaires pour créer la commande
+    const { 
+        amount, // Le total brut calculé par le front (pourrait être sécurisé davantage en recalculant via les items)
+        couponCode, items, customerName, customerPhone, 
+        pickupDate, pickupTime, orderType, deliveryAddress, deliveryZip, comments 
+    } = body;
 
-    if (!orderId) {
-      return NextResponse.json(
-        { error: "ID de commande manquant" },
-        { status: 400 }
-      );
-    }
-
-    // --- 1. RECALCUL DU MONTANT DEPUIS LA BASE DE DONNÉES ---
-    // ✅ Le client n'envoie PLUS le prix — on le lit depuis Supabase
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from("orders")
-      .select("id, total_amount, status")
-      .eq("id", orderId)
-      .single();
-
-    if (orderError || !order) {
-      return NextResponse.json(
-        { error: "Commande introuvable" },
-        { status: 404 }
-      );
-    }
-
-    // Sécurité : empêcher de repayer une commande déjà payée
-    if (order.status === "paid") {
-      return NextResponse.json(
-        { error: "Cette commande a déjà été payée" },
-        { status: 400 }
-      );
-    }
-
-    // Le montant de référence vient de la DB, jamais du client
-    const originalAmount: number = order.total_amount;
-
-    if (!originalAmount || originalAmount <= 0) {
-      return NextResponse.json(
-        { error: "Montant de commande invalide" },
-        { status: 400 }
-      );
-    }
-
-    let finalAmount = originalAmount;
+    let finalAmount = amount;
     let discountApplied = 0;
 
-    // --- 2. LOGIQUE DE COUPON CÔTÉ SERVEUR ---
+    // --- 1. LOGIQUE DE COUPON CÔTÉ SERVEUR ---
     if (couponCode) {
       const { data: coupon, error: couponError } = await supabaseAdmin
         .from("coupons")
@@ -77,74 +38,74 @@ export async function POST(request: Request) {
 
       if (!couponError && coupon) {
         const now = new Date();
-        const isExpired =
-          coupon.expiration_date && new Date(coupon.expiration_date) < now;
+        const isExpired = coupon.expiration_date && new Date(coupon.expiration_date) < now;
 
-        if (!isExpired && originalAmount >= (coupon.min_order_amount || 0)) {
+        if (!isExpired && amount >= (coupon.min_order_amount || 0)) {
           if (coupon.discount_type === "percentage") {
-            discountApplied = (originalAmount * coupon.discount_value) / 100;
+            discountApplied = (amount * coupon.discount_value) / 100;
           } else {
             discountApplied = coupon.discount_value;
           }
-          finalAmount = Math.max(0, originalAmount - discountApplied);
+          finalAmount = Math.max(0, amount - discountApplied);
         }
       }
     }
 
     const amountInCents = Math.round(finalAmount * 100);
 
-    // Stripe exige un minimum de 50 centimes
     if (amountInCents < 50) {
-      return NextResponse.json(
-        { error: "Montant trop faible pour être traité" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Montant trop faible" }, { status: 400 });
     }
 
-    // --- 3. CRÉATION DU PAYMENT INTENT ---
+    // --- 2. CRÉATION DE LA COMMANDE DANS SUPABASE ---
+    const { data: orderData, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert([{
+        customer_name: customerName, 
+        customer_phone: customerPhone, 
+        pickup_date: pickupDate,
+        pickup_time: pickupTime, 
+        order_type: orderType, 
+        delivery_address: deliveryAddress, 
+        delivery_zip: deliveryZip, 
+        total_amount: finalAmount, 
+        discount_amount: discountApplied, 
+        coupon_code: couponCode || null, 
+        items: items, 
+        status: "Paiement en cours",
+        comments: comments 
+      }])
+      .select('id')
+      .single();
+
+    if (orderError || !orderData) {
+      console.error("❌ Erreur Supabase INSERT order:", orderError?.message);
+      return NextResponse.json({ error: "Erreur création commande" }, { status: 500 });
+    }
+
+    const newOrderId = orderData.id;
+
+    // --- 3. CRÉATION DU PAYMENT INTENT STRIPE ---
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: "chf",
       automatic_payment_methods: { enabled: true },
       metadata: {
-        orderId: String(orderId),
+        orderId: String(newOrderId),
         couponUsed: (couponCode as string) || "none",
         discountAmount: discountApplied.toFixed(2),
-        originalAmount: originalAmount.toFixed(2),
+        originalAmount: amount.toFixed(2),
       },
     });
 
-    // --- 4. SYNCHRONISATION SUPABASE ---
-    // ✅ FIX 2 : supabaseAdmin (service_role) — l'UPDATE fonctionnera
-    // même avec les policies RLS restrictives qu'on a mises en place
-    const { error: updateError } = await supabaseAdmin
-      .from("orders")
-      .update({
-        total_amount: finalAmount,
-        discount_amount: discountApplied,
-        coupon_code: (couponCode as string) || null,
-      })
-      .eq("id", orderId);
-
-    if (updateError) {
-      // ✅ Maintenant on le traite comme une vraie erreur, pas un warning ignoré
-      console.error("❌ Erreur Supabase UPDATE order:", updateError.message);
-      return NextResponse.json(
-        { error: "Erreur lors de la mise à jour de la commande" },
-        { status: 500 }
-      );
-    }
-
+    // On renvoie le secret ET le nouvel ID de commande
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
+      orderId: newOrderId
     });
 
   } catch (error) {
-    const err = error as Error;
-    console.error("❌ Erreur API Stripe:", err.message);
-    return NextResponse.json(
-      { error: "Impossible d'initialiser le paiement sécurisé." },
-      { status: 500 }
-    );
+    console.error("❌ Erreur API Stripe/Supabase:", (error as Error).message);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
