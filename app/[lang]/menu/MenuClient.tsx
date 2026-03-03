@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import Image from "next/image";
-// ✅ CORRECTION PERF : Import de LazyMotion et domAnimation
 import { m, AnimatePresence, Variants, LazyMotion, domAnimation } from "framer-motion"; 
 import { Search, Info, Plus, Minus } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
-import { supabase } from "@/utils/supabase";
 import ProductModal from "@/components/ProductModal";
 import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
 
@@ -22,20 +20,10 @@ export interface MenuItem extends ContextMenuItem {
   is_available: boolean;
 }
 
-// --- SKELETON ULTRA-LÉGER (CSS PUR) ---
-const SkeletonCard = () => (
-  <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 h-full">
-    <div className="aspect-square bg-neutral-800 animate-pulse" />
-    <div className="p-3 space-y-2">
-      <div className="h-3 bg-neutral-800 rounded w-3/4 animate-pulse" />
-      <div className="h-2 bg-neutral-800 rounded w-1/2 animate-pulse" />
-      <div className="pt-4 flex justify-between">
-        <div className="h-4 bg-neutral-800 rounded w-12 animate-pulse" />
-        <div className="h-6 bg-neutral-800 rounded-full w-6 animate-pulse" />
-      </div>
-    </div>
-  </div>
-);
+// ✅ NOUVEAU : On déclare la prop que le serveur nous envoie
+interface MenuClientProps {
+  initialItems: MenuItem[];
+}
 
 // --- VARIANTS OPTIMISÉS ---
 const containerVariants: Variants = {
@@ -53,12 +41,11 @@ const itemVariants: Variants = {
   show: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.3 }
+    transition: { duration: 0.3 } 
   },
 };
 
 // --- COMPOSANT CARTE MÉMOÏSÉ ---
-// ✅ CORRECTION PERF : Ajout de la prop `index` pour cibler les premières images
 const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: number; onClick: (item: MenuItem) => void }) => {
   const { lang } = useTranslation();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
@@ -122,13 +109,12 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
               src={item.image_url}
               alt={displayName}
               fill
-              quality={75} 
+              quality={75}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               className={`object-cover transition-opacity duration-500 group-hover:scale-105 ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsImageLoaded(true)}
-              // ✅ CORRECTION PERF : Seules les 4 premières images (index 0, 1, 2, 3) sont préchargées
               priority={index < 4} 
               fetchPriority={index < 4 ? "high" : "auto"}
               onError={() => setImgError(true)}
@@ -197,27 +183,16 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
 
 MenuItemCard.displayName = "MenuItemCard";
 
-export default function MenuClient() {
+// ✅ CORRECTION : Le composant accepte maintenant "initialItems"
+export default function MenuClient({ initialItems }: MenuClientProps) {
   const { t, lang } = useTranslation();
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // ✅ CORRECTION ESLINT : On utilise directement initialItems sans useState car la liste ne change pas
+  const items = initialItems;
+  
   const [activeCategory, setActiveCategory] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
-
-  useEffect(() => {
-    async function fetchPublicMenu() {
-      const { data } = await supabase
-        .from("menu_items")
-        .select("id, name_fr, name_en, name_es, description_fr, description_en, description_es, price, image_url, category, is_available") 
-        .eq("is_available", true)
-        .order("id", { ascending: true });
-
-      if (data) setItems(data as MenuItem[]);
-      setLoading(false);
-    }
-    fetchPublicMenu();
-  }, []);
 
   const filteredItems = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
@@ -244,7 +219,6 @@ export default function MenuClient() {
   }, []);
 
   return (
-    // ✅ CORRECTION PERF : LazyMotion englobe le composant pour différer le chargement lourd de Framer Motion
     <LazyMotion features={domAnimation}>
       <div className="bg-[#080808] min-h-screen pb-32 pt-24 relative">
         <div className="bg-black text-white py-12 md:py-16 text-center relative overflow-hidden">
@@ -297,19 +271,15 @@ export default function MenuClient() {
             animate="show"
             className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
           >
-            {loading ? (
-              [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
-            ) : (
-              // ✅ CORRECTION PERF : On passe l'index à MenuItemCard pour gérer la priorité d'image
-              filteredItems.map((item, index) => (
-                <MenuItemCard 
-                  key={item.id} 
-                  item={item} 
-                  index={index}
-                  onClick={handleOpenModal} 
-                />
-              ))
-            )}
+            {/* L'affichage se fait instantanément avec les données initiales */}
+            {filteredItems.map((item, index) => (
+              <MenuItemCard 
+                key={item.id} 
+                item={item} 
+                index={index}
+                onClick={handleOpenModal} 
+              />
+            ))}
           </m.div>
         </div>
 
