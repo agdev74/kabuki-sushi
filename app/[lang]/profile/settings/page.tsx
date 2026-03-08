@@ -31,23 +31,18 @@ export default function SettingsPage() {
     }
   }, [profile]);
 
-  // ✅ Fonction de sauvegarde renforcée
-  const handleUpdate = async (e?: React.BaseSyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    console.log("🔥 BOUTON CLIQUÉ : Début de handleUpdate");
+  const handleUpdate = async () => {
+    // ✅ Log de diagnostic immédiat
+    console.log("🔥 BOUTON CLIQUÉ : Lancement de handleUpdate");
 
     if (!profile?.id) {
-      console.error("❌ Erreur: ID du profil introuvable dans le contexte.");
+      console.error("❌ Erreur: ID du profil introuvable.");
       return;
     }
 
     setIsUpdating(true);
     try {
-      console.log("📡 Envoi des données à Supabase pour l'ID:", profile.id);
+      console.log("📡 Envoi vers Supabase pour l'ID:", profile.id);
       
       const { data, error } = await supabase
         .from("profiles")
@@ -62,7 +57,7 @@ export default function SettingsPage() {
         .select();
 
       if (error) {
-        console.error("❌ Erreur Supabase reçue:", error.message);
+        console.error("❌ Erreur Supabase:", error.message);
         throw error;
       }
 
@@ -83,54 +78,56 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto">
         <TransitionLink href={`/${lang}/profile`} className="inline-flex items-center gap-2 text-gray-500 hover:text-white mb-8 group">
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-bold uppercase tracking-widest">Retour</span>
+          <span className="text-xs font-bold uppercase tracking-widest">Retour au profil</span>
         </TransitionLink>
 
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          {/* ✅ On garde le form pour l'accessibilité mais la logique est portée par le bouton */}
-          <form className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
             <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Informations Personnelles</h1>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nom complet</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+            {/* Formulaire sans action pour éviter le rechargement */}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nom complet</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Téléphone</label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                  </div>
                 </div>
               </div>
+
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Téléphone</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse de livraison</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rue et numéro" className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse de livraison</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rue et numéro" className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
-              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+              {/* ✅ BOUTON SORTI DU FORMULAIRE ET SANS TYPE SUBMIT */}
+              <button 
+                type="button" 
+                onClick={handleUpdate}
+                disabled={isUpdating} 
+                className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4 shadow-lg shadow-red-900/20"
+              >
+                {isUpdating ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Sauvegarder les modifications</>}
+              </button>
             </div>
-
-            {/* ✅ BOUTON TYPE="BUTTON" pour bypasser le comportement HTML par défaut */}
-            <button 
-              type="button" 
-              onClick={handleUpdate}
-              disabled={isUpdating} 
-              className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4 shadow-lg shadow-red-900/20"
-            >
-              {isUpdating ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Sauvegarder</>}
-            </button>
-          </form>
+          </div>
 
           {/* ZONE DE DANGER */}
           <div className="bg-red-900/10 border border-red-900/20 rounded-3xl p-8">
