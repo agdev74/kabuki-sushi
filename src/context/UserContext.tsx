@@ -70,7 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setProfile(null);
     } catch (err) {
-      console.error(err);
+      console.error("UserContext SignOut Error:", err);
     } finally {
       setLoading(false);
     }
@@ -78,16 +78,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let isFirstLoad = true;
 
-    // Utilisation de onAuthStateChange comme source unique pour l'init et le suivi
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        
+        console.log("🔄 UserContext - Auth Event:", event);
 
         if (session?.user) {
           setUser(session.user);
-          // On charge le profil. Le loading passera à false à la fin de fetchProfile
-          await fetchProfile(session.user.id, profile !== null);
+          // On n'active le spinner que lors du tout premier montage
+          await fetchProfile(session.user.id, !isFirstLoad);
+          isFirstLoad = false;
         } else {
           setUser(null);
           setProfile(null);
@@ -100,7 +103,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile, profile]);
+    // profile retiré pour éviter la boucle infinie, supabase et fetchProfile sont stables
+  }, [supabase, fetchProfile]);
 
   return (
     <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>
