@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/utils/supabase/client";
-import { m, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Phone, CheckCircle, MapPin, AlertTriangle } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, AlertTriangle } from "lucide-react";
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile, loading: contextLoading } = useUser(); 
+  const { user, profile, loading } = useUser(); 
   const { lang } = useParams();
   const supabase = createClient();
 
@@ -19,7 +18,6 @@ export default function SettingsPage() {
   const [zipCode, setZipCode] = useState("");
   const [city, setCity] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,12 +32,13 @@ export default function SettingsPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Étape 1 : Initialisation
-    console.log("1. Début de la mise à jour");
-    const targetId = user?.id;
-    if (!targetId) {
-      setErrorMsg("Erreur : Aucun utilisateur connecté détecté.");
+    e.stopPropagation();
+
+    // Si cette alerte n'apparaît pas, le code ne tourne pas.
+    alert("🚀 BOUTON CLIQUÉ - DÉBUT");
+
+    if (!user?.id) {
+      alert("❌ ERREUR : ID utilisateur manquant");
       return;
     }
 
@@ -47,45 +46,35 @@ export default function SettingsPage() {
     setErrorMsg(null);
 
     try {
-      // Étape 2 : Envoi Supabase
-      console.log("2. Envoi des données à Supabase pour l'ID:", targetId);
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          id: targetId,
+          id: user.id,
           full_name: fullName,
           phone: phone,
           address: address,
           zip_code: zipCode,
           city: city,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
 
-      if (error) {
-        console.error("3. Erreur Supabase reçue:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Étape 3 : Rafraîchissement du contexte
-      console.log("4. Upsert réussi, rafraîchissement du profil...");
-      await refreshProfile();
+      alert("✅ SUCCÈS : Base de données mise à jour !");
       
-      console.log("5. Profil rafraîchi avec succès.");
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      // On force le rechargement pour voir les changements
+      window.location.reload();
 
     } catch (err: unknown) {
-      console.error("Erreur attrapée:", err);
-      setErrorMsg(err instanceof Error ? err.message : "Une erreur inconnue est survenue.");
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      setErrorMsg(msg);
+      alert("❌ ERREUR SUPABASE : " + msg);
     } finally {
-      // Étape 4 : Libération de l'interface
-      console.log("6. Fin du processus, arrêt du spinner.");
       setIsUpdating(false);
     }
   };
 
-  // Si le contexte charge encore, on affiche un spinner global
-  if (contextLoading) return (
+  if (loading) return (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-kabuki-red border-t-transparent rounded-full animate-spin" />
     </div>
@@ -100,22 +89,22 @@ export default function SettingsPage() {
         </TransitionLink>
 
         <form onSubmit={handleUpdate} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
-          <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest">Réglages du Compte</h1>
+          <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Paramètres</h1>
           
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Nom Complet</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Nom complet</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                  <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Téléphone</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                  <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
                 </div>
               </div>
             </div>
@@ -124,40 +113,30 @@ export default function SettingsPage() {
               <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Adresse</label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input required type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                <input required type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
-              <input required type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="CP" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
-              <input required type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+              <input required type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="CP" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
+              <input required type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
             </div>
 
-            <AnimatePresence>
-              {errorMsg && (
-                <m.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-red-900/20 border border-red-500/30 text-red-400 p-4 rounded-xl flex items-center gap-3 text-xs uppercase tracking-wider">
-                  <AlertTriangle size={16} /> {errorMsg}
-                </m.div>
-              )}
-            </AnimatePresence>
+            {errorMsg && (
+              <div className="bg-red-900/20 border border-red-500/30 text-red-400 p-4 rounded-xl flex items-center gap-3 text-xs uppercase tracking-wider">
+                <AlertTriangle size={16} /> {errorMsg}
+              </div>
+            )}
 
             <button 
               type="submit" 
               disabled={isUpdating} 
               className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4 shadow-lg shadow-red-900/20"
             >
-              {isUpdating ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Mettre à jour"}
+              {isUpdating ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Sauvegarder"}
             </button>
           </div>
         </form>
-        
-        <AnimatePresence>
-          {showSuccess && (
-            <m.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl z-50">
-              <CheckCircle size={20} /><span className="text-xs font-bold uppercase tracking-widest">Profil synchronisé !</span>
-            </m.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
