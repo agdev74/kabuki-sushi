@@ -15,15 +15,18 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
+              // ✅ script-src : Garde 'unsafe-eval' (requis par certains outils) et autorise les domaines d'auth
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co https://accounts.google.com https://*.gstatic.com",
-              "connect-src 'self' https://api.stripe.com https://*.supabase.co https://api.resend.com https://*.sentry.io https://accounts.google.com",
+              // ✅ connect-src : Ajout de https://r.stripe.com pour corriger les erreurs de fetch Stripe
+              "connect-src 'self' https://api.stripe.com https://r.stripe.com https://*.supabase.co https://api.resend.com https://*.sentry.io https://accounts.google.com",
               "frame-src 'self' https://js.stripe.com https://accounts.google.com",
               "img-src 'self' data: blob: https://*.supabase.co https://*.gstatic.com https://lh3.googleusercontent.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' data: https://fonts.gstatic.com",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self' https://accounts.google.com",
+              // ✅ form-action : Ajout de l'URL spécifique Supabase pour éviter le blocage du "Bounce Tracking" lors de la redirection Google
+              "form-action 'self' https://accounts.google.com https://uzgrbehwvuvbukwmufzm.supabase.co",
             ].join('; ')
           },
           {
@@ -49,7 +52,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
+            value: 'same-origin-allow-popups', // ✅ Requis pour que la fenêtre Google communique avec ton site
           },
         ],
       },
@@ -90,16 +93,10 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  // ✅ CORRECTION ORG : On utilise "valkha" comme indiqué dans tes logs Vercel
   org: "valkha", 
-  // ✅ VERIFIE CE SLUG : Assure-toi que le nom du projet dans Sentry est bien "kabuki-sushi"
   project: "kabuki-sushi",
-  
   silent: !process.env.CI, 
   widenClientFileUpload: true,
-  
-  // ✅ Suppression de disableLogger (déprécié) et hideSourceMaps (inexistant)
-  
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
   },
