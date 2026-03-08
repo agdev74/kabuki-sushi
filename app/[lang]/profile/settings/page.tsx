@@ -7,6 +7,15 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-rea
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
+interface SupabaseError {
+  message: string;
+  code?: string;
+}
+
+interface UpsertResponse {
+  error: SupabaseError | null;
+}
+
 export default function SettingsPage() {
   const { user, profile, refreshProfile } = useUser();
   const params = useParams();
@@ -41,7 +50,7 @@ export default function SettingsPage() {
     if (isProcessing.current || isUpdating) return;
 
     if (!user || !user.id) {
-      setErrorMsg("Session introuvable. Veuillez recharger la page.");
+      setErrorMsg("Session introuvable. Veuillez vous reconnecter.");
       return;
     }
     
@@ -49,27 +58,16 @@ export default function SettingsPage() {
     setIsUpdating(true);
     setErrorMsg(null);
 
+    // 🕒 Timeout spécial Deadlock Navigateur
+    const timeout = new Promise<UpsertResponse>((_, reject) => 
+      setTimeout(() => reject(new Error("L'authentification a figé le navigateur. Veuillez vider le cache (Local Storage) et réessayer.")), 8000)
+    );
+
     try {
-      console.log("[DIAG] 1. Extraction du Token de Session...");
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) throw new Error("Vous devez être connecté.");
-
-      console.log("[DIAG] 2. Exécution du Fetch natif (Bypass Supabase JS)...");
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      // ⚡ BYPASS : On utilise l'API REST brute (PostgREST) pour court-circuiter le deadlock
-      const response = await fetch(`${supabaseUrl}/rest/v1/profiles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": supabaseAnonKey!,
-          // Cette ligne ordonne un UPSERT au lieu d'un simple INSERT
-          "Prefer": "resolution=merge-duplicates" 
-        },
-        body: JSON.stringify({
+      // ✅ Retour à la méthode officielle Supabase (maintenant que le cadenas est géré)
+      const upsertTask = supabase
+        .from("profiles")
+        .upsert({
           id: user.id,
           full_name: fullName,
           phone: phone,
@@ -77,15 +75,13 @@ export default function SettingsPage() {
           zip_code: zipCode,
           city: city,
           updated_at: new Date().toISOString(),
-        })
-      });
+        }, { onConflict: 'id' });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || "Échec de l'enregistrement réseau");
+      const result = await Promise.race([upsertTask, timeout]) as UpsertResponse;
+
+      if (result.error) {
+        throw new Error(result.error.message);
       }
-
-      console.log("[DIAG] 3. Sauvegarde Réussie !");
 
       await refreshProfile();
       setShowSuccess(true);
@@ -133,7 +129,7 @@ export default function SettingsPage() {
             </div>
 
             {errorMsg && (
-              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase animate-pulse break-words">
+              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase animate-pulse">
                 <AlertTriangle size={16} className="shrink-0" /> <span className="flex-1">{errorMsg}</span>
               </div>
             )}
