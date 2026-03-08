@@ -30,25 +30,23 @@ export default function SettingsPage() {
     }
   }, [profile]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    alert("1. Bouton cliqué");
+  // Utilisation de MouseEvent au lieu de FormEvent pour plus de stabilité
+  const handleUpdate = async () => {
+    alert("1. Entrée dans handleUpdate");
 
     if (!user) {
-      alert("2a. Erreur : L'objet 'user' est null");
+      alert("2. ERREUR : L'objet user est introuvable");
       return;
     }
-    
-    alert("2b. ID utilisateur : " + user.id);
 
+    alert("3. ID utilisateur détecté : " + user.id);
+    
     setIsUpdating(true);
     setErrorMsg(null);
 
     try {
-      alert("3. Tentative d'upsert Supabase...");
-
+      alert("4. Envoi de la requête à Supabase...");
+      
       const { error } = await supabase
         .from("profiles")
         .upsert({
@@ -62,16 +60,18 @@ export default function SettingsPage() {
         }, { onConflict: 'id' });
 
       if (error) {
-        alert("4a. Erreur retournée : " + error.message);
+        alert("5. ERREUR SUPABASE : " + error.message);
         throw error;
       }
 
-      alert("4b. UPSERT RÉUSSI !");
+      alert("6. SUCCESS ! Les données sont enregistrées.");
+      
+      // On reste sur la page sans recharger pour l'instant
       setIsUpdating(false);
 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
-      alert("5. Bloc catch : " + msg);
+      alert("7. CATCH ERROR : " + msg);
       setErrorMsg(msg);
       setIsUpdating(false);
     }
@@ -90,16 +90,21 @@ export default function SettingsPage() {
           <ArrowLeft size={20} /> <span className="text-xs font-bold uppercase tracking-widest">Retour</span>
         </TransitionLink>
 
-        <form onSubmit={handleUpdate} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
-          <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest">Réglages</h1>
+        {/* Suppression de la balise <form> pour éviter tout rechargement sauvage */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
+          <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Finaliser le Profil</h1>
+          
           <div className="space-y-6">
-            <input required type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nom" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
-            <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
-            <input required type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresse" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nom complet" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
+            </div>
+
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresse" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
             
             <div className="grid grid-cols-2 gap-4">
-               <input required type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
-               <input required type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
+               <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
+               <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white outline-none focus:border-kabuki-red" />
             </div>
 
             {errorMsg && (
@@ -108,11 +113,16 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <button type="submit" disabled={isUpdating} className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all disabled:opacity-50">
-              {isUpdating ? "En cours..." : "Enregistrer"}
+            <button 
+              type="button" 
+              onClick={handleUpdate}
+              disabled={isUpdating} 
+              className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all disabled:opacity-50"
+            >
+              {isUpdating ? "En cours..." : "Enregistrer les informations"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
