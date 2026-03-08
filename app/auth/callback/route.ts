@@ -1,7 +1,8 @@
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   
@@ -9,39 +10,53 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/fr/profile'
 
   if (code) {
-    // ✅ Correction ESLint : On utilise 'const' car la variable n'est jamais réassignée
-    const response = NextResponse.redirect(new URL(next, origin))
-
-    // On configure le client Supabase Server
+    // 1. On utilise l'API native de Next.js pour gérer les cookies (100% fiable sur Vercel)
+    const cookieStore = await cookies()
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() { 
-            return request.cookies.getAll() 
+          getAll() {
+            return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
-            // On accroche les cookies directement à la réponse constante
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options)
-            })
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch (error) {
+              // Ignoré de manière sécurisée si appelé depuis un Server Component
+            }
           },
         },
       }
     )
 
-    // Échange du code temporaire contre une session persistante
+    // 2. Échange du code temporaire contre une session persistante
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Succès : on renvoie la redirection AVEC les cookies de session attachés
-      return response
+      // 3. 🚨 LE FIX VERCEL CRUCIAL : Forcer le vrai nom de domaine
+      const forwardedHost = request.headers.get('x-forwarded-host')
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+
+      if (isLocalEnv) {
+        // En local (localhost)
+        return NextResponse.redirect(`${origin}${next}`)
+      } else if (forwardedHost) {
+        // Sur Vercel : On utilise le host forwardé (www.kabuki-sushi.ch) pour ancrer les cookies
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      } else {
+        // Fallback générique
+        return NextResponse.redirect(`${origin}${next}`)
+      }
     } else {
-      console.error("Erreur Auth Callback:", error.message)
+      console.error("Erreur d'échange Supabase :", error.message)
     }
   }
 
-  // Redirection de secours si l'auth échoue ou s'il n'y a pas de code
-  return NextResponse.redirect(new URL('/fr/login?error=auth_callback_failed', origin))
+  // Redirection de secours propre
+  return NextResponse.redirect(`${origin}/fr/login?error=auth_callback_failed`)
 }
