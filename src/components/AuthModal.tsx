@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User as UserIcon, Loader2, ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+// ✅ Import du composant Image de Next.js
+import Image from "next/image";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,7 +14,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const supabase = createClient();
-  const [isLogin, setIsLogin] = useState(true); // true = Connexion, false = Inscription
+  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -23,6 +25,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     fullName: "",
   });
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      const errorObj = err as Error;
+      setError(errorObj.message || "Erreur lors de la connexion avec Google.");
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -31,33 +51,28 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isLogin) {
-        // --- CONNEXION ---
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
         if (signInError) throw signInError;
-        
-        onClose(); // On ferme la modale si succès
+        onClose();
       } else {
-        // --- INSCRIPTION ---
         if (!formData.fullName.trim()) throw new Error("Le nom complet est requis.");
         
         const { error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
-            data: {
-              full_name: formData.fullName, // Envoyé au trigger SQL !
-            },
+            data: { full_name: formData.fullName },
           },
         });
         if (signUpError) throw signUpError;
         
-        setSuccess("Compte créé avec succès ! Vous êtes maintenant connecté.");
-        setTimeout(() => onClose(), 2000); // Ferme après 2s
+        setSuccess("Compte créé avec succès !");
+        setTimeout(() => onClose(), 2000);
       }
-   } catch (err: unknown) {
+    } catch (err: unknown) {
       const errorObj = err as Error;
       setError(errorObj.message || "Une erreur est survenue.");
     } finally {
@@ -170,9 +185,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg shadow-red-900/30 mt-6"
+                  className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg shadow-red-900/30 mt-6 disabled:opacity-50"
                 >
-                  {loading ? (
+                  {loading && isLogin ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <>
@@ -182,11 +197,39 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </button>
               </form>
 
-              <div className="mt-6 text-center">
+              {/* SECTION : GOOGLE OAUTH CORRIGÉE */}
+              <div className="mt-8 space-y-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-neutral-800"></span>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] uppercase font-bold">
+                    <span className="bg-neutral-900 px-2 text-gray-500 italic">Ou continuer avec</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-neutral-200 transition-all shadow-lg text-[11px] disabled:opacity-50"
+                >
+                  {/* ✅ Remplacement de <img> par <Image /> */}
+                  <Image 
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                    width={16} 
+                    height={16} 
+                    alt="Google" 
+                  />
+                  Google
+                </button>
+              </div>
+
+              <div className="mt-8 text-center border-t border-neutral-800 pt-6">
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-gray-400 hover:text-white text-xs font-bold transition uppercase tracking-wider"
+                  className="text-gray-400 hover:text-white text-[10px] font-bold transition uppercase tracking-[0.2em]"
                 >
                   {isLogin ? "Pas encore de compte ? Créer un compte" : "Déjà un compte ? Se connecter"}
                 </button>
