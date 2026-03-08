@@ -38,10 +38,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // On n'active le chargement visuel que si ce n'est pas un rafraîchissement silencieux
-    if (!silent) {
-      setLoading(true);
-    }
+    // ✅ Empêche l'affichage du spinner global si silent est vrai
+    if (!silent) setLoading(true);
 
     const timeoutId = setTimeout(() => {
       setLoading(false);
@@ -62,7 +60,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setProfile(data as UserProfile);
       }
     } catch (err) {
-      console.error("❌ UserContext Error:", err);
+      console.error("❌ UserContext: Erreur lors du fetchProfile", err);
       setProfile(null);
     } finally {
       clearTimeout(timeoutId);
@@ -72,7 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user?.id) {
-      // ✅ Rafraîchissement silencieux pour éviter de couper les requêtes en cours
+      // ✅ Rafraîchissement silencieux pour ne pas couper l'UI
       await fetchProfile(user.id, true);
     }
   };
@@ -83,7 +81,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.clear();
       await supabase.auth.signOut();
     } catch (error) {
-      console.error("UserContext Error:", error);
+      console.error("UserContext: Erreur pendant le signOut", error);
     } finally {
       setUser(null);
       setProfile(null);
@@ -125,7 +123,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         } else if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id, true); // Refresh silencieux sur changement d'état
+          // On utilise le fetch silencieux ici aussi pour éviter les sauts d'UI inutiles
+          await fetchProfile(session.user.id, true);
         } else {
           setLoading(false);
         }
