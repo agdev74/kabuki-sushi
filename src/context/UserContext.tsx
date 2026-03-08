@@ -9,6 +9,7 @@ export type UserProfile = {
   full_name: string | null;
   phone: string | null;
   wallet_balance: number;
+  is_admin: boolean; // ✅ AJOUT : Pour que la NavBar reconnaisse l'admin
 };
 
 type UserContextType = {
@@ -26,10 +27,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // On mémoïse la création du client Supabase
+  // On mémoïse la création du client Supabase pour éviter les re-créations inutiles
   const [supabase] = useState(() => createClient());
 
-  // ✅ CORRECTION ESLINT : On utilise useCallback pour stabiliser la fonction
+  // ✅ fetchProfile est maintenant stable grâce à useCallback
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
@@ -39,6 +40,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!error && data) {
       setProfile(data as UserProfile);
+    } else if (error) {
+      console.error("Erreur lors de la récupération du profil:", error.message);
     }
   }, [supabase]);
 
@@ -53,32 +56,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
+        }
+      } catch (err) {
+        console.error("Erreur session initiale:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    getSession();
+    getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
         } else {
           setProfile(null);
         }
+        setLoading(false);
       }
     );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase.auth, fetchProfile]); // ✅ ESLint est content, on a ajouté fetchProfile !
+  }, [supabase.auth, fetchProfile]);
 
   return (
     <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>

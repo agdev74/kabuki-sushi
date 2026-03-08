@@ -3,7 +3,7 @@
 import { useState } from "react";
 import TransitionLink from "./TransitionLink";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation"; 
 import { m, AnimatePresence } from "framer-motion"; 
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -12,7 +12,6 @@ import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext"; 
 import AuthModal from "./AuthModal";
 
-// ✅ 1. Interface pour typer proprement les traductions et éviter le "any"
 interface NavTranslations {
   home?: string;
   menu?: string;
@@ -30,7 +29,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false); 
   
   const pathname = usePathname();
-  const router = useRouter();
   const { t, lang } = useTranslation();
   const { totalItems } = useCart(); 
   const { user, profile, signOut } = useUser(); 
@@ -45,9 +43,14 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
   const isActive = (path: string) => pathname === path;
 
   const handleSignOut = async () => {
-    await signOut();
-    router.refresh(); 
-    if (isOpen) setIsOpen(false);
+    try {
+      await signOut();
+      localStorage.clear();
+      window.location.href = `/${lang}`; 
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      window.location.href = `/${lang}`;
+    }
   };
 
   const navLinks = [
@@ -65,7 +68,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
           href={`/${lang}`} 
           className="relative w-24 md:w-32 hover:scale-105 transition-transform duration-300"
           onClick={() => setIsOpen(false)}
-          aria-label="Retour à l'accueil Kabuki Sushi"
         >
           <Image 
             src="/images/logo.png" 
@@ -77,7 +79,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
           />
         </TransitionLink>
 
-        {/* --- DESKTOP NAV --- */}
+        {/* --- DESKTOP --- */}
         <div className="hidden md:flex space-x-6 items-center">
           {navLinks.map((link) => (
             <TransitionLink 
@@ -115,7 +117,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
                 <button 
                   onClick={handleSignOut}
                   className="text-gray-500 hover:text-white transition ml-2 p-1"
-                  title="Se déconnecter"
                 >
                   <LogOut size={14} />
                 </button>
@@ -123,7 +124,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:text-kabuki-red transition bg-neutral-900 px-5 py-2.5 rounded-full border border-neutral-800 shadow-md hover:border-kabuki-red/50"
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:text-kabuki-red transition bg-neutral-900 px-5 py-2.5 rounded-full border border-neutral-800 shadow-md"
               >
                 <UserIcon size={16} className="text-kabuki-red" /> Connexion
               </button>
@@ -146,7 +147,8 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
           <LanguageSwitcher />
 
-          {user && (
+          {/* ✅ FIX : 'as any' supprimé car profile.is_admin est maintenant dans le type UserProfile */}
+          {user && profile?.is_admin && (
             <TransitionLink 
               href={`/${lang}/admin/menu`} 
               className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1 rounded border border-white/20 font-bold uppercase tracking-widest transition-colors text-kabuki-red ml-2"
@@ -156,7 +158,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
           )}
         </div>
 
-        {/* --- MOBILE NAV --- */}
+        {/* --- MOBILE --- */}
         <div className="flex md:hidden items-center space-x-4">
           <button onClick={() => user ? handleSignOut() : setIsAuthModalOpen(true)} className="relative p-2 active:scale-90 transition-transform">
             {user ? <LogOut size={22} className="text-kabuki-red" /> : <UserIcon size={22} className="text-white" />}
@@ -179,12 +181,10 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
         </div>
       </div>
 
-      {/* --- MENU MOBILE --- */}
       <AnimatePresence>
         {isOpen && (
           <m.div
             initial={{ opacity: 0, x: "100%" }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: "100%" }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="fixed inset-0 bg-kabuki-black z-40 flex flex-col items-center justify-center md:hidden"
           >
             {user && profile && (
@@ -201,28 +201,18 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             <ul className="space-y-8 text-center mt-12">
               {navLinks.map((link) => (
                 <li key={link.path}>
-                  <TransitionLink href={link.path} className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${isActive(link.path) ? "text-kabuki-red" : "text-white hover:text-gray-300"}`}>
+                  <TransitionLink href={link.path} className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${isActive(link.path) ? "text-kabuki-red" : "text-white"}`}>
                     {link.name}
                   </TransitionLink>
                 </li>
               ))}
               {user && (
                 <li>
-                  <TransitionLink 
-                    href={`/${lang}/profile`} 
-                    className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${isActive(`/${lang}/profile`) ? "text-kabuki-red" : "text-white hover:text-gray-300"}`}
-                  >
-                    {/* ✅ 2. Utilisation du type NavTranslations au lieu de any */}
+                  <TransitionLink href={`/${lang}/profile`} className="text-3xl font-display font-bold uppercase tracking-widest block text-white">
                     {(t?.nav as NavTranslations)?.profile || "Mon Profil"}
                   </TransitionLink>
                 </li>
               )}
-              <li className="pt-8 flex flex-col items-center gap-6">
-                  <TransitionLink href={`/${lang}/traiteur#devis`} className="bg-kabuki-red text-white px-8 py-4 rounded-full font-bold text-lg uppercase tracking-wider shadow-xl">
-                    {t?.hero?.btnTraiteur || "Traiteur"}
-                  </TransitionLink>
-                  <LanguageSwitcher />
-              </li>
             </ul>
           </m.div>
         )}
