@@ -42,13 +42,25 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
   const isActive = (path: string) => pathname === path;
 
+  // ✅ CORRECTIF "FORCE LOGOUT" : Nettoyage total et redirection brutale
   const handleSignOut = async () => {
     try {
+      // 1. On ferme immédiatement les menus pour la réactivité UI
+      setIsOpen(false);
+      setIsAuthModalOpen(false);
+
+      // 2. Appel de la fonction de déconnexion de Supabase
       await signOut();
+
+      // 3. Nettoyage nucléaire du navigateur
       localStorage.clear();
+      sessionStorage.clear();
+
+      // 4. Redirection forcée qui réinitialise tout le cycle Next.js/Middleware
       window.location.href = `/${lang}`; 
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
+      console.error("Erreur lors de la déconnexion forcée:", error);
+      // Fallback : on force la redirection même en cas d'erreur
       window.location.href = `/${lang}`;
     }
   };
@@ -117,6 +129,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
                 <button 
                   onClick={handleSignOut}
                   className="text-gray-500 hover:text-white transition ml-2 p-1"
+                  title="Se déconnecter"
                 >
                   <LogOut size={14} />
                 </button>
@@ -147,7 +160,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
           <LanguageSwitcher />
 
-          {/* ✅ FIX : 'as any' supprimé car profile.is_admin est maintenant dans le type UserProfile */}
+          {/* ADMIN LINK */}
           {user && profile?.is_admin && (
             <TransitionLink 
               href={`/${lang}/admin/menu`} 
@@ -166,11 +179,16 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
           <button onClick={onOpenCart} className="relative p-2 z-50 active:scale-90 transition-transform">
             <ShoppingCart size={24} className="text-white" />
-            {totalItems > 0 && (
-              <span className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black">
-                {totalItems}
-              </span>
-            )}
+            <AnimatePresence>
+              {totalItems > 0 && (
+                <m.div 
+                  initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                  className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
+                >
+                  {totalItems}
+                </m.div>
+              )}
+            </AnimatePresence>
           </button>
 
           <button onClick={() => setIsOpen(!isOpen)} className="z-50 w-8 h-10 flex flex-col justify-center items-center">
@@ -185,6 +203,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
         {isOpen && (
           <m.div
             initial={{ opacity: 0, x: "100%" }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: "100%" }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="fixed inset-0 bg-kabuki-black z-40 flex flex-col items-center justify-center md:hidden"
           >
             {user && profile && (
@@ -201,7 +220,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             <ul className="space-y-8 text-center mt-12">
               {navLinks.map((link) => (
                 <li key={link.path}>
-                  <TransitionLink href={link.path} className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${isActive(link.path) ? "text-kabuki-red" : "text-white"}`}>
+                  <TransitionLink href={link.path} className={`text-3xl font-display font-bold uppercase tracking-widest block transition-colors ${isActive(link.path) ? "text-kabuki-red" : "text-white hover:text-gray-300"}`}>
                     {link.name}
                   </TransitionLink>
                 </li>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 
@@ -9,7 +9,7 @@ export type UserProfile = {
   full_name: string | null;
   phone: string | null;
   wallet_balance: number;
-  is_admin: boolean; // ✅ AJOUT : Pour que la NavBar reconnaisse l'admin
+  is_admin: boolean;
 };
 
 type UserContextType = {
@@ -26,22 +26,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // On mémoïse la création du client Supabase pour éviter les re-créations inutiles
   const [supabase] = useState(() => createClient());
+  const isInitialMount = useRef(true);
 
-  // ✅ fetchProfile est maintenant stable grâce à useCallback
+  // ✅ fetchProfile renforcé avec gestion d'erreur et arrêt du loading
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    if (!error && data) {
-      setProfile(data as UserProfile);
-    } else if (error) {
-      console.error("Erreur lors de la récupération du profil:", error.message);
+      if (error) throw error;
+      if (data) setProfile(data as UserProfile);
+    } catch (err) {
+      console.error("UserContext: Erreur récupération profil", err);
+    } finally {
+      setLoading(false); // ✅ Garantie que le spinner s'arrête
     }
   }, [supabase]);
 
@@ -49,49 +51,72 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
+  // ✅ Déconnexion robuste : On nettoie le navigateur AVANT la promesse Supabase
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("UserContext: Erreur pendant le signOut", error);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const getInitialSession = async () => {
+    let mounted = true;
+
+    const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-          await fetchProfile(currentUser.id);
+        if (!mounted) return;
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Erreur session initiale:", err);
-      } finally {
-        setLoading(false);
+      } catch { // ✅ FIX : Parenthèses et 'err' supprimés car inutilisés
+        if (mounted) setLoading(false);
       }
     };
 
-    getInitialSession();
+    if (isInitialMount.current) {
+      initAuth();
+      isInitialMount.current = false;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-          await fetchProfile(currentUser.id);
-        } else {
+      async (event, session) => {
+        if (!mounted) return;
+
+        if (event === "SIGNED_OUT") {
+          setUser(null);
           setProfile(null);
+          setLoading(false);
+        } else if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          if (session?.user) {
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          }
+        } else {
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase.auth, fetchProfile]);
+  }, [supabase, fetchProfile]);
 
   return (
     <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>
