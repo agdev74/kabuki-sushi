@@ -10,7 +10,9 @@ import TransitionLink from "@/components/TransitionLink";
 export default function SettingsPage() {
   const { user, profile, refreshProfile } = useUser();
   const { lang } = useParams();
-  const supabase = createClient();
+  
+  // ✅ FIX MAJEUR : Empêche la création de connexions infinies lors de la saisie
+  const [supabase] = useState(() => createClient());
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -26,21 +28,29 @@ export default function SettingsPage() {
       setFullName(profile.full_name || "");
       setPhone(profile.phone || "");
       setAddress(profile.address || "");
-      // ✅ Correction TS : On utilise uniquement la propriété strictement typée
       setZipCode(profile.zip_code || ""); 
       setCity(profile.city || "");
     }
   }, [profile]);
 
+  // 🔬 FONCTION SUR ÉCOUTE POUR LE DIAGNOSTIC
   const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault(); // 🛑 BLOQUE LE RECHARGEMENT NATIF DE LA PAGE
-    if (!user?.id) return;
+    e.preventDefault(); 
+    console.log("[DIAG] 1. Clic sur Sauvegarder intercepté. Formulaire bloqué.");
+    
+    if (!user?.id) {
+      console.log("[DIAG] ❌ ARRÊT : Aucun user.id trouvé dans le contexte.");
+      return;
+    }
     
     setIsUpdating(true);
     setErrorMsg(null);
+    console.log(`[DIAG] 2. Préparation de l'upsert pour l'ID: ${user.id}`);
 
     try {
-      const { error } = await supabase
+      console.log("[DIAG] 3. Envoi de la requête à Supabase...");
+      
+      const { data, error } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
@@ -50,18 +60,31 @@ export default function SettingsPage() {
           zip_code: zipCode,
           city: city,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .select(); // Force le retour du serveur pour confirmer l'écriture
 
-      if (error) throw error;
+      console.log("[DIAG] 4. Retour de Supabase reçu !");
+
+      if (error) {
+        console.error("[DIAG] ❌ Erreur renvoyée par Supabase :", error);
+        throw error;
+      }
+
+      console.log("[DIAG] ✅ Succès DB. Données enregistrées :", data);
+      console.log("[DIAG] 5. Appel de refreshProfile()...");
 
       await refreshProfile();
+      
+      console.log("[DIAG] 6. refreshProfile() terminé avec succès.");
+      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err: unknown) {
+      console.error("[DIAG] ❌ Bloc Catch déclenché :", err);
       const errorMessage = err instanceof Error ? err.message : "Erreur de base de données";
-      console.error("Erreur Upsert:", errorMessage);
       setErrorMsg(`Impossible de sauvegarder: ${errorMessage}`);
     } finally {
+      console.log("[DIAG] 7. Bloc Finally atteint. Extinction du spinner.");
       setIsUpdating(false);
     }
   };
@@ -78,7 +101,6 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-display font-bold uppercase tracking-widest">Mon Profil</h1>
           </div>
           
-          {/* ✅ Transformation en formulaire strict */}
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
