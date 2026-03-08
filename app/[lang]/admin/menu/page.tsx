@@ -56,7 +56,6 @@ export default function AdminMenu() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ✅ AJOUT DE SUPABASE DANS LES DÉPENDANCES
   const fetchMenu = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -72,8 +71,12 @@ export default function AdminMenu() {
     setLoading(false);
   }, [supabase]); 
 
+  // ✅ CORRECTION LINTER : Encapsulation dans une fonction asynchrone
   useEffect(() => {
-    fetchMenu();
+    const loadMenu = async () => {
+      await fetchMenu();
+    };
+    loadMenu();
   }, [fetchMenu]);
 
   const toggleAvailability = async (id: number, currentStatus: boolean) => {
@@ -273,7 +276,7 @@ export default function AdminMenu() {
                   <tr>
                     <th className="p-5">Plat</th>
                     <th className="p-5 text-center">Catégorie</th>
-                    <th className="p-5 text-center">Disponibilité</th> {/* ✅ Nouvelle colonne */}
+                    <th className="p-5 text-center">Disponibilité</th>
                     <th className="p-5 text-center">Prix</th>
                     <th className="p-5 text-right">Actions</th>
                   </tr>
@@ -297,7 +300,6 @@ export default function AdminMenu() {
                       </td>
                       <td className="p-5 text-center text-[10px] text-gray-400 font-bold uppercase">{item.category}</td>
                       
-                      {/* ✅ TOGGLE DISPONIBILITÉ (STOCK) */}
                       <td className="p-5 text-center">
                         <button
                           onClick={() => toggleAvailability(item.id, item.is_available)}
