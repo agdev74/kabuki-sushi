@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/context/LanguageContext"; // ✅ Import du contexte de langue
 

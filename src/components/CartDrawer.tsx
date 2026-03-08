@@ -6,7 +6,8 @@ import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Cale
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
-import { supabase } from "@/utils/supabase"; 
+// ✅ CORRECTION IMPORT : On utilise createClient
+import { createClient } from "@/utils/supabase/client"; 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -75,6 +76,9 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = createClient();
+
   const { items, updateQuantity, removeFromCart, totalPrice, clearCart, totalItems } = useCart();
   const { lang } = useTranslation();
   const t = cartTranslations[lang as keyof typeof cartTranslations] || cartTranslations.fr;

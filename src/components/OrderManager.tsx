@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode d'export
+import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChefHat, Truck, PackageCheck, Loader2, ShoppingBasket } from "lucide-react";
 
@@ -24,6 +25,9 @@ interface Order {
 }
 
 export default function OrderManager() {
+  // ✅ CORRECTION CLIENT : Initialisation du client Supabase à l'intérieur du composant
+  const supabase = createClient();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +64,7 @@ export default function OrderManager() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, []); // Dépendances vides pour ne l'exécuter qu'au montage
+  }, [supabase]); // Ajout de supabase dans le tableau des dépendances
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     const { error } = await supabase

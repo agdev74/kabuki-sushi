@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 import { 
   TrendingUp, ShoppingBag, 
   Loader2, Calendar,

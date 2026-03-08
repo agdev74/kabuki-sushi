@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 import { Truck, MapPin, CheckCircle2, Navigation, Loader2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 

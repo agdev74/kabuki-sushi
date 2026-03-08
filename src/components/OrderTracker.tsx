@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/utils/supabase";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode d'export
+import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Receipt, ChefHat, Package, CheckCircle2, Loader2, ArrowRight, XCircle, Truck } from "lucide-react"; 
 import Link from "next/link";
 import { useTranslation } from "@/context/LanguageContext";
 import dynamic from "next/dynamic";
 
-// ✅ Import dynamique de la carte pour éviter l'erreur "window is not defined" côté serveur
 const DeliveryMap = dynamic(() => import("@/components/DeliveryMap"), { 
   ssr: false,
   loading: () => <div className="h-64 bg-neutral-900 animate-pulse rounded-2xl flex items-center justify-center text-gray-500 text-xs border border-neutral-800">Chargement du GPS...</div>
@@ -28,13 +28,15 @@ interface OrderTrackerProps {
 }
 
 export default function OrderTracker({ orderId }: OrderTrackerProps) {
+  // ✅ CORRECTION CLIENT : Initialisation du client Supabase à l'intérieur du composant
+  const supabase = createClient();
+  
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const { lang } = useTranslation();
 
   useEffect(() => {
     const fetchOrder = async () => {
-      // ✅ On ajoute order_type et les coordonnées GPS à la requête
       const { data, error } = await supabase
         .from("orders")
         .select("id, pickup_time, status, order_type, driver_lat, driver_lng")
@@ -56,7 +58,8 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        (payload) => {
+        // ✅ CORRECTION TYPAGE : Utilisation de unknown au lieu de any pour satisfaire ESLint
+        (payload: { new: unknown }) => {
           setOrder(payload.new as OrderData);
         }
       )
@@ -65,7 +68,7 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [orderId]);
+  }, [orderId, supabase]); // Ajout de supabase dans le tableau des dépendances
 
   const handleFinish = () => {
     localStorage.removeItem("kabuki_active_order");
@@ -74,7 +77,6 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-kabuki-red" /></div>;
   if (!order) return <div className="text-center p-10 text-gray-500 font-bold uppercase tracking-widest text-sm">Commande introuvable</div>;
 
-  // ✅ Adaptation des étapes selon le type de commande
   const isDelivery = order.order_type === "Livraison";
   const steps = isDelivery ? [
     { id: "Payé", label: "Validée", icon: Receipt },
@@ -95,7 +97,6 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
   const isDelivered = order.status === "Livrée";
   const isCancelled = order.status === "Annulée"; 
   
-  // On affiche la carte seulement si c'est une livraison en cours (ou si on a des coordonnées)
   const showMap = isDelivery && (order.status === "En livraison" || (order.driver_lat && order.driver_lng));
 
   return (
@@ -114,7 +115,6 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
           </p>
         </div>
 
-        {/* ✅ INTEGRATION DE LA CARTE ICI */}
         <AnimatePresence>
           {showMap && !isDelivered && !isCancelled && (
             <motion.div 

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import MenuClient from "./MenuClient";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 
 // ✅ OPTIMISATION PERF : Mise en cache du menu côté serveur pendant 1 heure (3600 secondes)
 // Cela signifie que le temps de réponse de ta base de données sera de 0ms pour la majorité de tes visiteurs.

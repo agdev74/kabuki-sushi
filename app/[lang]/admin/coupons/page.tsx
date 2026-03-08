@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 import { 
   Ticket, Plus, Trash2, X, Loader2, 
   CheckCircle2, AlertCircle, Power, PowerOff, 

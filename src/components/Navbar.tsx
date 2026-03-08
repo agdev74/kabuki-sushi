@@ -7,8 +7,9 @@ import { usePathname } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion"; 
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { supabase } from "@/utils/supabase";
-import { User } from "@supabase/supabase-js"; 
+// ✅ CORRECTION IMPORT : On utilise createClient et on importe le type Session
+import { createClient } from "@/utils/supabase/client";
+import { User, Session } from "@supabase/supabase-js"; 
 import { ShoppingCart } from "lucide-react"; 
 import { useCart } from "@/context/CartContext"; 
 
@@ -17,6 +18,9 @@ interface NavbarProps {
 }
 
 export default function Navbar({ onOpenCart }: NavbarProps) {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = createClient();
+  
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null); 
   
@@ -38,14 +42,15 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
     };
     checkUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    // ✅ CORRECTION TYPAGE : On type explicitement les paramètres _event et session
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setUser(session?.user || null);
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase.auth]); // Ajout de supabase.auth dans les dépendances
 
   const isActive = (path: string) => pathname === path;
 

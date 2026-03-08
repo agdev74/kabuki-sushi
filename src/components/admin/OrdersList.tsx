@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 import { 
   Package, User, MapPin, Eye, XCircle, Calendar, CheckCircle2, 
   AlertCircle, ChefHat, Truck, Loader2, RefreshCw, Clock, 

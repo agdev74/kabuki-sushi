@@ -12,7 +12,7 @@ import {
   BarChart3,
   Ticket 
 } from "lucide-react";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/utils/supabase/client";
 
 export default function AdminHeader({ lang }: { lang: string }) {
   const pathname = usePathname();
