@@ -29,8 +29,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient());
   const isInitialMount = useRef(true);
 
+  // ✅ fetchProfile renforcé : Arrête le chargement même en cas d'erreur ou de profil absent
   const fetchProfile = useCallback(async (userId: string) => {
-    console.log("🔍 UserContext: Récupération du profil...");
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    console.log("🔍 UserContext: Récupération du profil pour", userId);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -38,32 +44,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
-      if (error) throw error;
-      if (data) {
+      if (error) {
+        // Erreur PGRST116 = La ligne n'existe pas dans la table profiles
+        if (error.code === 'PGRST116') {
+          console.warn("⚠️ UserContext: Aucun profil trouvé dans la table 'profiles'.");
+        } else {
+          throw error;
+        }
+        setProfile(null);
+      } else if (data) {
         setProfile(data as UserProfile);
-        console.log("✅ UserContext: Profil chargé");
+        console.log("✅ UserContext: Profil chargé avec succès");
       }
     } catch (err) {
-      console.error("❌ UserContext: Erreur profil", err);
+      console.error("❌ UserContext: Erreur lors du fetchProfile", err);
       setProfile(null);
     } finally {
+      // ✅ Quoiqu'il arrive, on libère l'interface
       setLoading(false);
     }
   }, [supabase]);
 
+  // ✅ refreshProfile simplifié
+  const refreshProfile = async () => {
+    if (user?.id) {
+      setLoading(true);
+      await fetchProfile(user.id);
+    }
+  };
+
   const signOut = async () => {
-    console.log("🚪 UserContext: Déconnexion en cours...");
+    console.log("🚪 UserContext: Déconnexion nucléaire...");
     try {
+      // Nettoyage immédiat pour la réactivité de l'UI
       localStorage.clear();
       sessionStorage.clear();
+      
       await supabase.auth.signOut();
     } catch (error) {
-      console.error("UserContext: Erreur signOut", error);
+      console.error("UserContext: Erreur pendant le signOut", error);
     } finally {
       setUser(null);
       setProfile(null);
       setLoading(false);
-      console.log("✅ UserContext: Déconnecté");
+      console.log("✅ UserContext: Session nettoyée");
     }
   };
 
@@ -116,7 +140,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, fetchProfile]);
 
   return (
-    <UserContext.Provider value={{ user, profile, loading, refreshProfile: () => fetchProfile(user?.id || ""), signOut }}>
+    <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>
       {children}
     </UserContext.Provider>
   );
