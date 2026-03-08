@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/utils/supabase/client";
-import { m, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Save, CheckCircle, AlertTriangle, User, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertTriangle, Save } from "lucide-react";
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile, loading } = useUser(); 
+  const { user, profile, refreshProfile } = useUser();
   const { lang } = useParams();
   const supabase = createClient();
 
@@ -22,6 +21,7 @@ export default function SettingsPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Initialisation synchronisée avec le profil
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
@@ -34,7 +34,6 @@ export default function SettingsPage() {
 
   const handleUpdate = async () => {
     if (!user?.id) return;
-
     setIsUpdating(true);
     setErrorMsg(null);
 
@@ -53,94 +52,79 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
+      // refreshProfile est maintenant "silent" (voir modif UserContext précédente)
       await refreshProfile();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Erreur de mise à jour");
+      // ✅ Correction ESLint : On traite 'unknown' au lieu de 'any'
+      const errorMessage = err instanceof Error ? err.message : "Une erreur inconnue est survenue";
+      setErrorMsg(errorMessage);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // ✅ CONDITION CRITIQUE : On n'affiche le spinner QUE si on n'a absolument aucune donnée
-  if (loading && !profile) return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="w-12 h-12 border-4 border-kabuki-red border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
+  // 🛡️ ON NE RETOURNE PLUS JAMAIS DE SPINNER ICI
+  // On laisse la page affichée même si loading est true dans le contexte
   return (
     <div className="min-h-screen bg-black pt-32 pb-20 px-6 text-white">
       <div className="max-w-2xl mx-auto">
-        <TransitionLink href={`/${lang}/profile`} className="inline-flex items-center gap-2 text-gray-500 hover:text-white mb-8 group transition-colors">
-          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-bold uppercase tracking-widest">Retour</span>
+        <TransitionLink href={`/${lang}/profile`} className="mb-8 inline-flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
+          <ArrowLeft size={20} /> <span className="text-xs font-bold uppercase tracking-widest">Retour au profil</span>
         </TransitionLink>
 
-        <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
-            <h1 className="text-2xl font-display font-bold uppercase tracking-widest mb-4">Paramètres</h1>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nom complet</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Téléphone</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="CP" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
-                <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
-              </div>
-
-              <AnimatePresence>
-                {errorMsg && (
-                  <m.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="bg-red-900/20 border border-red-500/30 text-red-400 p-4 rounded-xl flex items-center gap-3 text-xs uppercase tracking-wider">
-                    <AlertTriangle size={16} /> {errorMsg}
-                  </m.div>
-                )}
-              </AnimatePresence>
-
-              <button 
-                type="button" 
-                onClick={handleUpdate}
-                disabled={isUpdating} 
-                className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isUpdating ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Sauvegarder</>}
-              </button>
-            </div>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-8">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-display font-bold uppercase tracking-widest">Mon Profil</h1>
+            {isUpdating && <div className="w-4 h-4 border-2 border-kabuki-red border-t-transparent rounded-full animate-spin" />}
           </div>
-        </m.div>
-        
-        <AnimatePresence>
-          {showSuccess && (
-            <m.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl z-50">
-              <CheckCircle size={20} /><span className="text-xs font-bold uppercase tracking-widest">Enregistré !</span>
-            </m.div>
-          )}
-        </AnimatePresence>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Nom complet</label>
+                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-kabuki-red outline-none transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Téléphone</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-kabuki-red outline-none transition-all" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Adresse</label>
+              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-kabuki-red outline-none transition-all" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+               <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-kabuki-red outline-none transition-all" />
+               <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-kabuki-red outline-none transition-all" />
+            </div>
+
+            {errorMsg && (
+              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs uppercase animate-pulse">
+                <AlertTriangle size={16} /> {errorMsg}
+              </div>
+            )}
+
+            <button 
+              type="button"
+              onClick={handleUpdate}
+              disabled={isUpdating} 
+              className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUpdating ? "Mise à jour..." : <><Save size={18} /> Sauvegarder</>}
+            </button>
+          </div>
+        </div>
       </div>
+
+      {showSuccess && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-600 text-white px-8 py-4 rounded-full flex items-center gap-3 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-5">
+          <CheckCircle size={20} /> <span className="text-xs font-bold uppercase tracking-widest">Modifications enregistrées</span>
+        </div>
+      )}
     </div>
   );
 }

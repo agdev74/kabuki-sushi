@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 
@@ -30,17 +30,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabase] = useState(() => createClient());
-  const isInitialMount = useRef(true);
 
-  const fetchProfile = useCallback(async (userId: string, silent = false) => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    // On n'active le loading que si ce n'est pas silencieux
-    if (!silent) setLoading(true);
-
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -48,81 +39,60 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
-      if (error) {
-        if (error.code !== 'PGRST116') throw error;
-        setProfile(null);
-      } else if (data) {
+      if (!error && data) {
         setProfile(data as UserProfile);
       }
     } catch (err) {
-      console.error("UserContext Error:", err);
-    } finally {
-      setLoading(false);
+      console.error("UserContext Fetch Error:", err);
     }
   }, [supabase]);
 
   const refreshProfile = async () => {
     if (user?.id) {
-      // ✅ APPEL SILENCIEUX : Pas de setLoading(true) ici
-      await fetchProfile(user.id, true);
+      // ✅ On rafraîchit sans JAMAIS toucher à 'loading'
+      await fetchProfile(user.id);
     }
   };
 
   const signOut = async () => {
     try {
-      localStorage.clear();
-      sessionStorage.clear();
       await supabase.auth.signOut();
-    } catch (error) {
-      console.error("UserContext: Erreur pendant le signOut", error);
-    } finally {
       setUser(null);
       setProfile(null);
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
+    // 1. Initialisation unique
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
 
-        if (session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          setLoading(false);
-        }
-      } catch {
-        if (mounted) setLoading(false);
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
       }
+      setLoading(false); // ✅ Une seule fois ici
     };
 
-    if (isInitialMount.current) {
-      initAuth();
-      isInitialMount.current = false;
-    }
+    init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        if (event === "SIGNED_OUT") {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        } else if (session?.user) {
-          setUser(session.user);
-          // On utilise le fetch silencieux ici aussi pour éviter les sauts d'UI inutiles
-          await fetchProfile(session.user.id, true);
-        } else {
-          setLoading(false);
-        }
+    // 2. Écoute des changements (SANS toucher au loading global)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
       }
-    );
+      setLoading(false); 
+    });
 
     return () => {
       mounted = false;
@@ -139,6 +109,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (context === undefined) throw new Error("useUser must be used within a UserProvider");
+  if (!context) throw new Error("useUser must be used within UserProvider");
   return context;
 };
