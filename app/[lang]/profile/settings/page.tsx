@@ -37,22 +37,22 @@ export default function SettingsPage() {
 
     setErrorMsg(null);
     if (!targetId) {
-      setErrorMsg("Session expirée.");
+      setErrorMsg("Erreur : ID utilisateur introuvable.");
       return;
     }
 
     setIsUpdating(true);
 
     try {
-      // ✅ MÉTHODE DE SECOURS : Puisque la librairie Supabase fige, 
-      // on utilise l'API REST directe de Supabase (PostgREST)
+      console.log("🚀 Tentative de sauvegarde pour :", targetId);
+
       const response = await fetch(`${url}/rest/v1/profiles?id=eq.${targetId}`, {
-        method: 'PATCH', // PATCH = Update en REST
+        method: 'PATCH',
         headers: {
           'apikey': key!,
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          'Prefer': 'return=representation' // On demande à Supabase de nous renvoyer l'objet modifié
         },
         body: JSON.stringify({
           full_name: fullName,
@@ -64,20 +64,25 @@ export default function SettingsPage() {
         })
       });
 
+      const responseData = await response.json();
+      console.log("🔍 Réponse brute de Supabase :", responseData);
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || "Erreur lors de la mise à jour");
+        throw new Error(responseData.message || "Erreur serveur Supabase");
       }
 
-      // ✅ On force le rafraîchissement du contexte global
+      // Si la réponse est vide (Array [0]), c'est que le RLS a bloqué la modif
+      if (Array.isArray(responseData) && responseData.length === 0) {
+        throw new Error("Mise à jour refusée par Supabase (Vérifiez les règles RLS).");
+      }
+
       await refreshProfile();
-      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
 
     } catch (err) {
-      console.error("💥 Erreur:", err);
-      setErrorMsg(err instanceof Error ? err.message : "Une erreur est survenue.");
+      console.error("💥 Erreur attrapée :", err);
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setIsUpdating(false);
     }
