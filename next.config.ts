@@ -3,12 +3,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
-    // 🛡️ DÉSACTIVATION DU CSP EN DÉVELOPPEMENT POUR EMPÊCHER LES BOUCLES (ERR_ABORTED / EVAL)
+    // 🛡️ DÉSACTIVATION DU CSP EN DÉVELOPPEMENT POUR ÉVITER LES RECHARGEMENTS INFINIS
     if (process.env.NODE_ENV === 'development') {
       return [];
     }
 
-    // 🔒 CES RÈGLES NE S'APPLIQUERONT QU'EN PRODUCTION (SUR VERCEL)
     return [
       {
         source: '/(.*)',
@@ -32,18 +31,9 @@ const nextConfig: NextConfig = {
               "form-action 'self' https://accounts.google.com https://uzgrbehwvuvbukwmufzm.supabase.co",
             ].join('; ')
           },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
             value: [
@@ -53,17 +43,12 @@ const nextConfig: NextConfig = {
               'payment=(self "https://js.stripe.com")',
             ].join(', ')
           },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups', 
-          },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
         ],
       },
       {
         source: '/api/webhook',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store, no-cache' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'no-store, no-cache' }],
       },
     ]
   },
@@ -71,25 +56,13 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
     minimumCacheTTL: 3600,
   },
-
   compress: true,
-
-  experimental: {
-    optimizePackageImports: ['lucide-react'],
-  },
-
+  experimental: { optimizePackageImports: ['lucide-react'] },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? { exclude: ['error'] } : false,
   },
@@ -100,7 +73,5 @@ export default withSentryConfig(nextConfig, {
   project: "kabuki-sushi",
   silent: !process.env.CI, 
   widenClientFileUpload: true,
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
+  sourcemaps: { deleteSourcemapsAfterUpload: true },
 });

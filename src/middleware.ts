@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 1. EXCLUSIONS
+  // 1. EXCLUSIONS : On ne touche pas aux fichiers statiques ni à l'auth interne
   if (
     pathname.startsWith('/_next') || 
     pathname.startsWith('/api') || 
@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 2. INITIALISATION SUPABASE
+  // 2. INITIALISATION : On crée la réponse de base
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -33,20 +33,19 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ✅ On appelle getUser() pour rafraîchir la session et mettre à jour les headers 'Set-Cookie'
-  // Mais on n'assigne plus le résultat à une variable inutilisée
+  // On rafraîchit la session (essentiel pour les cookies)
   await supabase.auth.getUser()
 
-  // 3. LOGIQUE DE LANGUES (i18n)
+  // 3. LOGIQUE i18n : Redirection vers la langue par défaut si manquante
   const locales = ['fr', 'en', 'es']
-  const segments = pathname.split('/')
-  const langInUrl = locales.find(l => segments[1] === l)
+  const langInUrl = locales.find(l => pathname.startsWith(`/${l}`))
 
   if (!langInUrl && pathname !== '/login') {
     const redirectUrl = new URL(`/fr${pathname === '/' ? '' : pathname}`, request.url)
     const redirectResponse = NextResponse.redirect(redirectUrl)
     
-    // ✅ TRANSFERT RIGOUREUX DES HEADERS : Empêche la perte de session lors de la redirection
+    // ✅ TRANSFERT CRUCIAL : On récupère les headers Set-Cookie de la réponse Supabase
+    // et on les injecte manuellement dans la redirection pour éviter la boucle Google.
     const setCookie = response.headers.get('set-cookie')
     if (setCookie) {
       redirectResponse.headers.set('set-cookie', setCookie)
