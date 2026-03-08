@@ -15,15 +15,15 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co",
-              "connect-src 'self' https://api.stripe.com https://*.supabase.co https://api.resend.com https://*.sentry.io",
-              "frame-src 'self' https://js.stripe.com",
-              "img-src 'self' data: blob: https://*.supabase.co",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Autorise le CSS de Google Fonts
-              "font-src 'self' data: https://fonts.gstatic.com", // Autorise les fichiers de police Google Fonts
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co https://accounts.google.com https://*.gstatic.com",
+              "connect-src 'self' https://api.stripe.com https://*.supabase.co https://api.resend.com https://*.sentry.io https://accounts.google.com",
+              "frame-src 'self' https://js.stripe.com https://accounts.google.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.gstatic.com https://lh3.googleusercontent.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://accounts.google.com",
             ].join('; ')
           },
           {
@@ -44,12 +44,12 @@ const nextConfig: NextConfig = {
               'camera=()',
               'microphone=()',
               'geolocation=(self)',
-              'payment=(self "https://js.stripe.com")', // Correction : guillemets autour du domaine externe
+              'payment=(self "https://js.stripe.com")',
             ].join(', ')
           },
           {
-            key: 'Cross-Origin-Opener-Policy', // Ajout de la protection d'isolation demandée par Lighthouse
-            value: 'same-origin',
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
           },
         ],
       },
@@ -70,9 +70,12 @@ const nextConfig: NextConfig = {
         hostname: '**.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
     minimumCacheTTL: 3600,
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
 
   compress: true,
@@ -84,15 +87,19 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? { exclude: ['error'] } : false,
   },
-
-  onDemandEntries: {
-    maxInactiveAge: 25 * 1000,
-    pagesBufferLength: 2,
-  },
 };
 
 export default withSentryConfig(nextConfig, {
+  org: "kabuki-sushi", 
+  project: "kabuki-sushi",
+  
+  silent: !process.env.CI, 
+  widenClientFileUpload: true,
+  disableLogger: true,
+  
   sourcemaps: {
+    // ✅ Correction : hideSourceMaps est maintenant bien placé ici
+    hideSourceMaps: true,
     deleteSourcemapsAfterUpload: true,
   },
 });
