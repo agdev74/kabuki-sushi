@@ -1,32 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import TransitionLink from "./TransitionLink";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion"; 
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-// ✅ CORRECTION IMPORT : On utilise createClient et on importe le type Session
-import { createClient } from "@/utils/supabase/client";
-import { User, Session } from "@supabase/supabase-js"; 
-import { ShoppingCart } from "lucide-react"; 
+import { ShoppingCart, User as UserIcon } from "lucide-react"; 
 import { useCart } from "@/context/CartContext"; 
+
+// ✅ NOUVEAUX IMPORTS POUR L'AUTH
+import { useUser } from "@/context/UserContext"; 
+import AuthModal from "./AuthModal";
 
 interface NavbarProps {
   onOpenCart: () => void;
 }
 
 export default function Navbar({ onOpenCart }: NavbarProps) {
-  // ✅ CORRECTION CLIENT : On initialise le client Supabase
-  const supabase = createClient();
-  
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null); 
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false); // ✅ État pour la modale
   
   const pathname = usePathname();
   const { t, lang } = useTranslation();
   const { totalItems } = useCart(); 
+  const { user, profile, signOut } = useUser(); // ✅ On récupère l'user depuis le contexte !
 
   const [prevPathname, setPrevPathname] = useState(pathname);
 
@@ -34,23 +33,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
     setPrevPathname(pathname);
     if (isOpen) setIsOpen(false);
   }
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data?.user || null);
-    };
-    checkUser();
-
-    // ✅ CORRECTION TYPAGE : On type explicitement les paramètres _event et session
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase.auth]); // Ajout de supabase.auth dans les dépendances
 
   const isActive = (path: string) => pathname === path;
 
@@ -76,7 +58,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             alt="Kabuki Logo" 
             width={120} 
             height={120}
-            sizes="(max-width: 768px) 96px, 120px" // ✅ FIX LCP : Indique la taille réelle rendue
+            sizes="(max-width: 768px) 96px, 120px" 
             className="w-full h-auto object-contain"
             priority
           />
@@ -123,27 +105,57 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             </AnimatePresence>
           </button>
 
-          <TransitionLink 
-            href={`/${lang}/traiteur#devis`} 
-            className="bg-kabuki-red text-white px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-red-700 transition shadow-lg shadow-red-900/20"
-          >
-            {t?.hero?.btnTraiteur || "Devis Traiteur"}
-          </TransitionLink>
+          <LanguageSwitcher />
+
+          {/* ✅ BOUTON CONNEXION / PROFIL DESKTOP */}
+          <div className="pl-4 border-l border-neutral-800 flex items-center h-8">
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-end">
+                  <span className="text-xs font-bold text-white capitalize">{profile?.full_name || "Client"}</span>
+                  <span className="text-[10px] font-bold text-kabuki-red uppercase tracking-widest">
+                    Cagnotte: {profile?.wallet_balance ? Number(profile.wallet_balance).toFixed(2) : "0.00"} CHF
+                  </span>
+                </div>
+                <button 
+                  onClick={signOut}
+                  className="text-[10px] text-gray-400 hover:text-white transition uppercase tracking-widest bg-neutral-900 px-2 py-1 rounded"
+                >
+                  Déco
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:text-white transition"
+              >
+                <UserIcon size={16} className="text-kabuki-red" /> Connexion
+              </button>
+            )}
+          </div>
 
           {user && (
             <TransitionLink 
               href={`/${lang}/admin/menu`} 
-              className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1 rounded border border-white/20 font-bold uppercase tracking-widest transition-colors text-kabuki-red"
+              className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1 rounded border border-white/20 font-bold uppercase tracking-widest transition-colors text-kabuki-red ml-2"
             >
               Admin
             </TransitionLink>
           )}
 
-          <LanguageSwitcher />
         </div>
 
         {/* --- MOBILE NAV BUTTONS --- */}
-        <div className="flex md:hidden items-center space-x-6">
+        <div className="flex md:hidden items-center space-x-5">
+          {/* ✅ BOUTON CONNEXION MOBILE (Icone seule) */}
+          <button
+            onClick={() => user ? signOut() : setIsAuthModalOpen(true)}
+            aria-label={user ? "Déconnexion" : "Connexion"}
+            className="relative p-2 active:scale-90 transition-transform"
+          >
+            <UserIcon size={22} className={user ? "text-kabuki-red" : "text-white"} />
+          </button>
+
           <button 
             onClick={onOpenCart} 
             aria-label={`Ouvrir le panier, ${totalItems} articles`}
@@ -196,7 +208,20 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="fixed inset-0 bg-kabuki-black z-40 flex flex-col items-center justify-center md:hidden"
           >
-            <ul className="space-y-8 text-center">
+            {/* ✅ AFFICHAGE CAGNOTTE DANS LE MENU MOBILE */}
+            {user && profile && (
+              <div className="absolute top-24 w-full flex justify-center">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-full px-6 py-2 flex items-center gap-3">
+                  <span className="text-xs font-bold text-white capitalize">{profile.full_name}</span>
+                  <span className="w-1 h-1 bg-kabuki-red rounded-full" />
+                  <span className="text-[10px] font-bold text-kabuki-red uppercase tracking-widest">
+                    {Number(profile.wallet_balance).toFixed(2)} CHF
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <ul className="space-y-8 text-center mt-12">
               {navLinks.map((link) => (
                 <li key={link.path}>
                   <TransitionLink 
@@ -226,6 +251,9 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
           </m.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ LA MODALE D'AUTHENTIFICATION */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </nav>
   );
 }
