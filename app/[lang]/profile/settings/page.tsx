@@ -12,7 +12,8 @@ export default function SettingsPage() {
   const { user, profile, refreshProfile, loading } = useUser(); 
   const { lang } = useParams();
   
-  // ❌ ON SUPPRIME LA CRÉATION DU CLIENT ICI POUR ÉVITER LE DEADLOCK DE RENDU
+  // ✅ On replace le client ici (comportement standard Next.js)
+  const supabase = createClient();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -37,6 +38,9 @@ export default function SettingsPage() {
     const targetId = profile?.id || user?.id;
     setErrorMsg(null);
 
+    // 🔍 Test de diagnostic (Affiche "URL OK" si tes clés sont bien configurées en prod)
+    console.log("🔍 Vérification URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? "URL OK ✅" : "URL MANQUANTE ❌");
+
     if (!targetId) {
       setErrorMsg("Session expirée. Veuillez recharger la page.");
       return;
@@ -46,17 +50,16 @@ export default function SettingsPage() {
 
     const safetyTimeout = setTimeout(() => {
       setIsUpdating(false);
-      setErrorMsg("La requête a échoué (Timeout). Vérifiez votre connexion.");
+      setErrorMsg("Le serveur ne répond pas. Avez-vous configuré vos variables d'environnement en production ?");
     }, 8000);
 
     try {
-      // ✅ ON CRÉE LE CLIENT SUPABASE ICI : Une seule fois, juste pour la sauvegarde !
-      const supabase = createClient();
+      console.log("📡 Envoi de la mise à jour à Supabase...");
       
+      // ✅ On repasse sur un simple UPDATE (beaucoup plus stable)
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          id: targetId,
+        .update({
           full_name: fullName,
           phone: phone,
           address: address,
@@ -64,7 +67,7 @@ export default function SettingsPage() {
           city: city,
           updated_at: new Date().toISOString(),
         })
-        .select();
+        .eq("id", targetId);
 
       if (error) throw error;
 
@@ -72,8 +75,10 @@ export default function SettingsPage() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
+      // ✅ Correction TypeScript : vérification explicite du type de l'erreur
       console.error("💥 Erreur de sauvegarde:", err);
-      setErrorMsg("Une erreur est survenue lors de la sauvegarde.");
+      const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de la sauvegarde.";
+      setErrorMsg(errorMessage);
     } finally {
       clearTimeout(safetyTimeout);
       setIsUpdating(false);
