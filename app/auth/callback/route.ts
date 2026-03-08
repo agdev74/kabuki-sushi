@@ -1,27 +1,47 @@
-import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
-
-  console.log("--- AUTH CALLBACK START ---")
-  console.log("Code présent :", !!code)
+  
+  // Par défaut, on renvoie vers le profil en français
+  const next = searchParams.get('next') ?? '/fr/profile'
 
   if (code) {
-    const supabase = await createClient()
-    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
+    // ✅ Correction ESLint : On utilise 'const' car la variable n'est jamais réassignée
+    const response = NextResponse.redirect(new URL(next, origin))
+
+    // On configure le client Supabase Server
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { 
+            return request.cookies.getAll() 
+          },
+          setAll(cookiesToSet) {
+            // On accroche les cookies directement à la réponse constante
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
+    // Échange du code temporaire contre une session persistante
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      console.log("Authentification réussie pour :", data.user?.email)
-      return NextResponse.redirect(`${origin}${next}`)
+      // Succès : on renvoie la redirection AVEC les cookies de session attachés
+      return response
+    } else {
+      console.error("Erreur Auth Callback:", error.message)
     }
-
-    console.error("Erreur d'échange de session :", error.message)
   }
 
-  console.log("--- AUTH CALLBACK FAILED OR NO CODE ---")
-  // En cas d'échec, on redirige avec un paramètre d'erreur pour le voir dans l'URL
-  return NextResponse.redirect(`${origin}/?error=auth_callback_failed`)
+  // Redirection de secours si l'auth échoue ou s'il n'y a pas de code
+  return NextResponse.redirect(new URL('/fr/login?error=auth_callback_failed', origin))
 }
