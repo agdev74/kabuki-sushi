@@ -86,6 +86,22 @@ export default function SettingsPage() {
     );
   }
 
+  // ✅ PROTECTION DE ROUTE : Si pas d'utilisateur, on bloque l'accès au formulaire
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-display font-bold text-white uppercase mb-4">Session expirée</h1>
+        <p className="text-gray-400 mb-8 uppercase text-xs tracking-wider">Veuillez vous reconnecter pour modifier vos paramètres.</p>
+        <TransitionLink 
+          href={`/${lang}`}
+          className="bg-kabuki-red text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+        >
+          Se connecter
+        </TransitionLink>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black pt-32 pb-20 px-6">
       <div className="max-w-2xl mx-auto">
