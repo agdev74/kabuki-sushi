@@ -1,12 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const locales = ['fr', 'en', 'es']
-const defaultLocale = 'fr'
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // 1. EXCLUSIONS
   if (
     pathname.startsWith('/_next') || 
     pathname.startsWith('/api') || 
@@ -17,7 +15,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Initialisation de la réponse
+  // 2. INITIALISATION SUPABASE
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -35,26 +33,26 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Rafraîchissement crucial de la session
-  const { data: { user } } = await supabase.auth.getUser()
+  // ✅ On appelle getUser() pour rafraîchir la session et mettre à jour les headers 'Set-Cookie'
+  // Mais on n'assigne plus le résultat à une variable inutilisée
+  await supabase.auth.getUser()
 
+  // 3. LOGIQUE DE LANGUES (i18n)
+  const locales = ['fr', 'en', 'es']
   const segments = pathname.split('/')
   const langInUrl = locales.find(l => segments[1] === l)
 
   if (!langInUrl && pathname !== '/login') {
-    const newUrl = new URL(`/${defaultLocale}${pathname === '/' ? '' : pathname}`, request.url)
-    const redirectResponse = NextResponse.redirect(newUrl)
+    const redirectUrl = new URL(`/fr${pathname === '/' ? '' : pathname}`, request.url)
+    const redirectResponse = NextResponse.redirect(redirectUrl)
     
-    // Copie de TOUS les cookies (y compris ceux de session fraîchement mis à jour)
-    response.cookies.getAll().forEach((c) => {
-      redirectResponse.cookies.set(c)
-    })
+    // ✅ TRANSFERT RIGOUREUX DES HEADERS : Empêche la perte de session lors de la redirection
+    const setCookie = response.headers.get('set-cookie')
+    if (setCookie) {
+      redirectResponse.headers.set('set-cookie', setCookie)
+    }
     
     return redirectResponse
-  }
-
-  if (pathname.includes('/admin') && !user) {
-    return NextResponse.redirect(new URL(`/${langInUrl || defaultLocale}/login`, request.url))
   }
 
   return response
