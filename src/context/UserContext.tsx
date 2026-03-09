@@ -39,20 +39,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!silent) setLoading(true);
 
-    // 🛡️ COUPE-CIRCUIT : On force la fin du chargement après 5 secondes maximum
     const fallbackTimeout = setTimeout(() => {
       setLoading(false);
     }, 5000);
 
     try {
+      // ✅ LA CLÉ EST ICI : 'Cache-Control': 'no-cache'
+      // Cela interdit au navigateur et au SDK d'utiliser une ancienne copie en mémoire
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .single()
+        .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); 
 
       if (error) {
-        // L'erreur PGRST116 est normale pour un nouveau compte Google (profil non créé)
         if (error.code !== 'PGRST116') throw error;
         setProfile(null);
       } else {
@@ -63,7 +64,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
     } finally {
       clearTimeout(fallbackTimeout);
-      setLoading(false); // Le spinner est garanti de s'arrêter ici
+      setLoading(false); 
     }
   }, [supabase]);
 
