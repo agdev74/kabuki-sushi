@@ -3,39 +3,42 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
   try {
+    // 1. Initialisation du client
     const supabase = await createClient();
     
-    // 1. Vérification de la session
-    const { data: authData, error: authError } = await supabase.auth.getUser();
+    // 2. Récupération de l'utilisateur
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    // Si pas de session, on ne crash pas, on renvoie simplement null
+    if (authError || !user) {
+      return NextResponse.json({ profile: null }, { status: 200 });
     }
 
-    // 2. Récupération ultra-sécurisée et simplifiée
-    // On utilise .maybeSingle() pour éviter le crash 500 si le profil n'existe pas
+    // 3. Récupération du profil (On reste sur l'essentiel pour éviter les colonnes inexistantes)
     const { data: profile, error: dbError } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url") 
-      .eq("id", authData.user.id)
+      .select("id, full_name, avatar_url, loyalty_points, wallet_balance")
+      .eq("id", user.id)
       .maybeSingle(); 
 
     if (dbError) {
-      // On affiche l'erreur réelle dans tes logs Vercel pour que tu puisses la voir
-      console.error("🚨 Erreur Supabase détaillée:", JSON.stringify(dbError));
-      return NextResponse.json({ error: "Erreur de base de données" }, { status: 500 });
+      console.error("❌ [DB_ERROR] get-profile:", dbError.message);
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    // 3. Réponse propre (si profile est null, le front recevra { profile: null })
     return NextResponse.json({ profile });
 
   } catch (error: unknown) {
-    // Gestion ESLint pour le type 'unknown'
-    const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
-    console.error("[CRITICAL_GET_PROFILE]:", errorMessage);
+    // ✅ ESLint fix : on remplace 'any' par 'unknown' et on vérifie le type
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    console.error("🔥 [CRITICAL_500] Crash route get-profile:", errorMessage);
     
     return NextResponse.json(
-      { error: "Erreur interne du serveur", details: errorMessage }, 
+      { 
+        error: "Internal Server Error", 
+        message: errorMessage // Aide au debug en prod
+      }, 
       { status: 500 }
     );
   }
