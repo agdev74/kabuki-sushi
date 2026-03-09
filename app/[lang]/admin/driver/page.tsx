@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
 import { createClient } from "@/utils/supabase/client";
 import { Truck, MapPin, CheckCircle2, Navigation, Loader2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +16,6 @@ interface Order {
 }
 
 export default function DriverDashboard() {
-  // ✅ CORRECTION CLIENT : On initialise le client Supabase
   const supabase = useMemo(() => createClient(), []);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -27,7 +25,6 @@ export default function DriverDashboard() {
   
   const watchIdRef = useRef<number | null>(null);
 
-  // ✅ 1. Déclaration AVANT le useEffect, avec useCallback pour stabiliser la fonction
   const fetchDriverOrders = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -38,18 +35,16 @@ export default function DriverDashboard() {
       .order("id", { ascending: true });
 
     if (error) {
-      console.error("Erreur chargement livraisons:", error);
+      console.error("[DIAG] Erreur chargement livraisons:", error);
     } else if (data) {
       setOrders(data as Order[]);
       const active = data.find(o => o.status === "En livraison");
       if (active) setActiveDeliveryId(active.id);
     }
     setLoading(false);
-  }, [supabase]); // Ajout de supabase aux dépendances
+  }, [supabase]);
 
-  // ✅ 2. Le useEffect vient ENSUITE avec la correction pour set-state-in-effect
   useEffect(() => {
-    // On encapsule l'appel asynchrone pour satisfaire ESLint
     const loadData = async () => {
       await fetchDriverOrders();
     };
@@ -63,7 +58,7 @@ export default function DriverDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchDriverOrders, supabase]); // Ajout de supabase aux dépendances
+  }, [fetchDriverOrders, supabase]);
 
   const startDelivery = async (orderId: number) => {
     if (!navigator.geolocation) {
@@ -80,7 +75,7 @@ export default function DriverDashboard() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log(`📍 Position MAJ : ${latitude}, ${longitude}`);
+        // ✅ CORRECTION : console.log de suivi GPS supprimé pour la sécurité et propreté prod
         
         await supabase
           .from("orders")
@@ -89,7 +84,7 @@ export default function DriverDashboard() {
       },
       (error) => {
         setGeoError("Veuillez autoriser l'accès au GPS pour le suivi.");
-        console.error("Erreur GPS:", error);
+        console.error("[DIAG] Erreur GPS:", error);
       },
       {
         enableHighAccuracy: true,
@@ -177,9 +172,9 @@ export default function DriverDashboard() {
                     </div>
                   </div>
                   
-                  {/* ✅ Lien Google Maps corrigé pour une ouverture direct dans l'app sur mobile */}
+                  {/* ✅ CORRECTION : Lien Google Maps valide pour ouverture app mobile */}
                   <a 
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.delivery_address + ', ' + order.delivery_zip + ', Suisse')}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${order.delivery_address}, ${order.delivery_zip}, Suisse`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-4 flex items-center justify-center gap-2 w-full bg-neutral-800 hover:bg-neutral-700 py-3 rounded-xl text-xs font-bold uppercase transition"

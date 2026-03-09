@@ -2,7 +2,7 @@
 
 import { useUser } from "@/context/UserContext";
 import { m } from "framer-motion";
-import { User, History, Settings, ChevronRight, AlertCircle, Shield } from "lucide-react"; // ✅ Ajout de Shield
+import { User, History, Settings, ChevronRight, AlertCircle, Shield } from "lucide-react";
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 import OrderHistory from "@/components/OrderHistory";
@@ -32,11 +32,9 @@ export default function ProfilePage() {
             <p className="text-gray-400 max-w-md mx-auto">
               Votre session a expiré ou vous n&apos;êtes pas connecté. Veuillez vous identifier pour accéder à votre espace.
             </p>
-            {/* ✅ CORRECTION : Remplacement du TransitionLink par un bouton d'ouverture de modale */}
             <button 
               onClick={() => {
-                // 🔔 À MODIFIER : Appelle ici la fonction qui ouvre ta modale de connexion
-                console.log("Ouverture de la modale de connexion...");
+                // 🔔 TODO : Insérer ici la fonction d'ouverture de la modale
               }}
               className="bg-kabuki-red text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
             >
@@ -54,7 +52,6 @@ export default function ProfilePage() {
                 <User size={48} className="text-kabuki-red" />
               </div>
               <div className="text-center md:text-left flex-1">
-                {/* ✅ MODIFICATION : Titre dynamique en fonction du rôle */}
                 <h1 className="text-3xl font-display font-bold text-white uppercase tracking-wider mb-2">
                   {profile?.full_name || (profile?.is_admin ? "Admin Kabuki" : "Client Kabuki")}
                 </h1>
@@ -90,7 +87,6 @@ export default function ProfilePage() {
 
               <div className="space-y-6">
                 
-                {/* ✅ AJOUT : Panneau d'administration visible uniquement si is_admin est true */}
                 {profile?.is_admin && (
                   <TransitionLink href={`/${lang}/admin`} className="block">
                     <m.div 
