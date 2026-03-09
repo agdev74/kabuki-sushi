@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { revalidatePath } from "next/cache"; // ✅ Ajout crucial
+import { revalidatePath } from "next/cache"; 
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
+    
+    // ✅ SÉCURITÉ #7 : Vérification d'identité stricte avant modification
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -12,12 +14,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { fullName, phone, address, zipCode, city, lang } = body; // ✅ On récupère 'lang'
+    const { fullName, phone, address, zipCode, city, lang } = body;
 
     const { data: updatedProfile, error: dbError } = await supabase
       .from("profiles")
       .upsert({
-        id: user.id,
+        id: user.id, // ✅ On force l'ID de la session pour empêcher l'usurpation
         full_name: fullName,
         phone,
         address,
@@ -30,14 +32,16 @@ export async function POST(request: Request) {
 
     if (dbError) throw dbError;
 
-    // ✅ FORCE LE SERVEUR À RECHARGER LA PAGE PROFIL
-    // Cela efface le cache de Next.js pour cette route précise
-    revalidatePath(`/${lang}/profile`);
-    revalidatePath(`/${lang}/profile/settings`);
+    // ✅ On invalide le cache pour que les changements soient visibles immédiatement
+    if (lang) {
+      revalidatePath(`/${lang}/profile`);
+      revalidatePath(`/${lang}/profile/settings`);
+    }
 
     return NextResponse.json({ success: true, profile: updatedProfile });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Erreur serveur";
+    console.error("[API] update-profile error:", errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
