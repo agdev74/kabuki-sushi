@@ -87,6 +87,27 @@ async function handleCheckoutCompleted(
     return;
   }
 
+  // ✅ CORRECTIF SÉCURITÉ #6 : Validation des Quantités et du Panier
+  const MAX_ITEM_QUANTITY = 50;
+  const MAX_CART_LINES = 30;
+
+  const isCartValid = 
+    Array.isArray(cart) && 
+    cart.length > 0 && 
+    cart.length <= MAX_CART_LINES &&
+    cart.every(item => 
+      typeof item.menuItemId === 'string' &&
+      item.menuItemId.length > 0 &&
+      Number.isInteger(item.quantity) &&
+      item.quantity >= 1 &&
+      item.quantity <= MAX_ITEM_QUANTITY
+    );
+
+  if (!isCartValid) {
+    console.error('[webhook] ❌ Panier invalide ou hors limites détecté:', cart);
+    return;
+  }
+
   const menuItemIds = cart.map((i) => i.menuItemId);
   const { data: menuItems, error: menuError } = await supabaseAdmin
     .from('menu_items')
