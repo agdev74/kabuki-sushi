@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
 import { createClient } from "@/utils/supabase/client";
 import { 
   Package, User, MapPin, Eye, XCircle, Calendar, CheckCircle2, 
@@ -34,7 +33,7 @@ interface Order {
 }
 
 export default function OrdersList() {
-  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  // ✅ Client Supabase initialisé proprement pour éviter les re-rendus inutiles
   const supabase = useMemo(() => createClient(), []);
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -81,7 +80,7 @@ export default function OrdersList() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]); // ✅ Ajout de supabase aux dépendances
+  }, [supabase]); 
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
@@ -109,8 +108,9 @@ export default function OrdersList() {
         fetchOrders();
       })
       .subscribe();
+      
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchOrders, playNotification, supabase]); // ✅ Ajout de supabase aux dépendances
+  }, [fetchOrders, playNotification, supabase]); 
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -171,14 +171,13 @@ export default function OrdersList() {
                   </div>
                   <div>
                     <h4 className="text-white font-bold text-lg uppercase leading-tight tracking-tight">{order.customer_name}</h4>
-                    {/* ✅ TÉLÉPHONE PLUS LISIBLE (MONO) */}
                     <p className="text-[11px] text-gray-400 font-mono tracking-[0.15em] mt-1 bg-white/5 w-fit px-2 rounded">
                       {order.customer_phone}
                     </p>
                   </div>
                 </div>
 
-                {/* ✅ ADRESSE DE LIVRAISON DIRECTE */}
+                {/* ADRESSE DE LIVRAISON DIRECTE */}
                 {isDelivery && (
                   <div className="flex-1 min-w-[200px] max-w-xs bg-blue-500/5 px-4 py-3 rounded-xl border border-blue-500/10">
                     <span className="text-[8px] text-blue-400/60 font-black uppercase tracking-widest mb-1 block">Destination</span>

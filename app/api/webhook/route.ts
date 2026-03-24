@@ -1,11 +1,10 @@
 /**
- * 🔒 WEBHOOK STRIPE SÉCURISÉ — kabuki-sushi.ch
+ * 🔒 WEBHOOK STRIPE SÉCURISÉ — Planet Food
  */
 
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +63,6 @@ async function markAsProcessed(
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session
 ): Promise<void> {
-  // ✅ CORRECTIF SÉCURITÉ #5 : Vérification du paiement réel
   if (session.payment_status !== 'paid') {
     console.info(
       `[webhook] Session ${session.id} terminée mais payment_status=${session.payment_status}, skip.`
@@ -87,7 +85,6 @@ async function handleCheckoutCompleted(
     return;
   }
 
-  // ✅ CORRECTIF SÉCURITÉ #6 : Validation des Quantités et du Panier
   const MAX_ITEM_QUANTITY = 50;
   const MAX_CART_LINES = 30;
 
@@ -126,7 +123,7 @@ async function handleCheckoutCompleted(
       stripe_payment_intent_id: session.payment_intent as string,
       user_id: session.metadata?.userId ?? null,
       customer_email: session.customer_details?.email ?? null,
-      status: 'paid',
+      status: 'Payé', // ✅ CORRECTION : Alignement avec le frontend
       total_cents: session.amount_total ?? 0,
       created_at: new Date().toISOString(),
     })
@@ -166,7 +163,7 @@ async function handlePaymentFailed(
 ): Promise<void> {
   const { error } = await supabaseAdmin
     .from('orders')
-    .update({ status: 'payment_failed' })
+    .update({ status: 'Paiement échoué' }) // ✅ CORRECTION : Statut lisible
     .eq('stripe_payment_intent_id', paymentIntent.id);
 
   if (error) {
@@ -181,7 +178,7 @@ async function handleRefundCreated(charge: Stripe.Charge): Promise<void> {
 
   const { error } = await supabaseAdmin
     .from('orders')
-    .update({ status: 'refunded' })
+    .update({ status: 'Annulée' }) // ✅ CORRECTION : Alignement avec la logique d'annulation
     .eq('stripe_payment_intent_id', charge.payment_intent as string);
 
   if (error) {

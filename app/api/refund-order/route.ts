@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/utils/supabase/server";
 
-// 1. Initialisation de Stripe sans conflit de linter
+// 1. Initialisation de Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   apiVersion: "2026-02-25.clover" as any, 
@@ -12,13 +12,13 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
 
-    // 🛡️ SÉCURITÉ #7 - Authentification
+    // 🛡️ SÉCURITÉ #1 - Authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Authentification requise" }, { status: 401 });
     }
 
-    // 🛡️ SÉCURITÉ #7 - Autorisation (Admin uniquement)
+    // 🛡️ SÉCURITÉ #2 - Autorisation (Admin uniquement)
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
@@ -61,6 +61,17 @@ export async function POST(request: Request) {
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntent.id,
     });
+
+    // 5. ✅ CRITIQUE : Mise à jour de la base de données côté serveur
+    const { error: dbError } = await supabase
+      .from("orders")
+      .update({ status: "Annulée" })
+      .eq("id", orderId);
+
+    if (dbError) {
+      console.error("⚠️ Alerte : Remboursement Stripe réussi, mais échec de la MAJ Supabase", dbError);
+      // On pourrait envoyer une alerte sur un canal Slack/Discord ici
+    }
 
     return NextResponse.json({ success: true, refund });
 

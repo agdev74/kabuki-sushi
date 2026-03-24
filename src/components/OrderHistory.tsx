@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 import { useUser } from "@/context/UserContext";
 import { Package, Clock, CheckCircle2, Truck } from "lucide-react";
 
+// ✅ TYPAGE MIS À JOUR : total_price devient total_amount
 type Order = {
   id: string;
   created_at: string;
@@ -23,39 +25,32 @@ export default function OrderHistory() {
   const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ Toujours stable via useState
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    let isMounted = true;
-
     async function fetchOrders() {
       if (!user) return;
       
-      try {
-        // ⚡ BYPASS CLIENT : On interroge l'API Serveur
-        const response = await fetch("/api/get-orders");
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (isMounted && data.orders) {
-          setOrders(data.orders);
-        }
-      } catch (err) {
-        console.error("[DIAG] Erreur lors de la récupération des commandes :", err);
-      } finally {
-        if (isMounted) setLoading(false);
+      // ✅ CORRECTION DU SELECT : total_amount au lieu de total_price
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, created_at, total_amount, status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        // Cast sécurisé vers notre type Order
+        setOrders(data as Order[]);
+      } else if (error) {
+        console.error("[DIAG] Erreur lors de la récupération des commandes :", error.message);
       }
+      setLoading(false);
     }
 
     fetchOrders();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
+  }, [user, supabase]);
 
   if (loading) return <div className="text-gray-500 animate-pulse uppercase text-[10px] font-bold">Chargement des commandes...</div>;
   if (orders.length === 0) return <div className="text-gray-500 text-xs uppercase italic">Aucune commande passée.</div>;
@@ -63,9 +58,7 @@ export default function OrderHistory() {
   return (
     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
       {orders.map((order) => {
-        // Fallback sécurisé au cas où un statut inattendu arriverait de la base
-        const statusKey = order.status in statusMap ? order.status : 'pending';
-        const status = statusMap[statusKey as keyof typeof statusMap];
+        const status = statusMap[order.status] || statusMap.pending;
         const Icon = status.icon;
 
         return (
@@ -80,6 +73,7 @@ export default function OrderHistory() {
               </div>
             </div>
             <div className="text-right">
+              {/* ✅ AFFICHAGE MIS À JOUR : total_amount */}
               <p className="text-white font-bold text-sm">{Number(order.total_amount).toFixed(2)} CHF</p>
               <p className={`text-[9px] font-black uppercase tracking-widest ${status.color}`}>{status.label}</p>
             </div>
