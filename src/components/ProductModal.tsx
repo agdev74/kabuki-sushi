@@ -35,7 +35,8 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     [MOCHI_FLAVORS[0], MOCHI_FLAVORS[0]]
   ]);
 
-  const isMochi = (item.name_fr || "").toLowerCase().includes("mochi");
+  // Détection stricte basée sur l'ID Supabase (4)
+  const isMochi = Number(item.id) === 4;
 
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
