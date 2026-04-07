@@ -34,7 +34,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     [MOCHI_FLAVORS[0], MOCHI_FLAVORS[0]]
   ]);
 
-  // Génération dynamique des traductions (Placé avant la détection isMochi pour pouvoir l'utiliser)
   const { name, desc } = useMemo(() => {
     const currentLang = lang.toLowerCase();
     const n = currentLang === "es" ? item.name_es : currentLang === "en" ? item.name_en : item.name_fr;
@@ -45,12 +44,17 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     };
   }, [lang, item]);
 
-  // ✅ CORRECTION : Détection "blindée". Vérifie l'ID (nombre ou string) ET le nom affiché.
+  // ✅ DÉTECTION INDESTRUCTIBLE : ID + Nom sans accents
   const isMochi = useMemo(() => {
-    const isIdMatch = String(item.id) === "4";
-    const isNameFrMatch = (item.name_fr || "").toLowerCase().includes("mochi");
-    const isCurrentNameMatch = (name || "").toLowerCase().includes("mochi");
-    return isIdMatch || isNameFrMatch || isCurrentNameMatch;
+    if (String(item.id) === "4") return true;
+    
+    // Fonction pour retirer les accents et passer en minuscules
+    const normalize = (str: string) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+    
+    const safeNameFr = normalize(item.name_fr);
+    const safeName = normalize(name);
+    
+    return safeNameFr.includes("mochi") || safeName.includes("mochi");
   }, [item.id, item.name_fr, name]);
 
   useEffect(() => {
@@ -258,12 +262,13 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
               </button>
             </div>
 
+            {/* ✅ MODIFICATION VISUELLE DE DEBUG : "AJOUTER AU PANIER" AU LIEU DE "Ajouter" */}
             <button 
               onClick={handleAddToCart}
               className="w-full bg-kabuki-red hover:bg-red-700 text-white font-bold min-h-[64px] h-16 rounded-2xl uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
             >
               <ShoppingCart size={20} />
-              <span>Ajouter • {(item.price * quantity).toFixed(2)} CHF</span>
+              <span>AJOUTER AU PANIER • {(item.price * quantity).toFixed(2)} CHF</span>
             </button>
           </div>
         </div>
