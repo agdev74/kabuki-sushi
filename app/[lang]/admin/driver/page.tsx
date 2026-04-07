@@ -25,7 +25,15 @@ export default function DriverDashboard() {
   
   const watchIdRef = useRef<number | null>(null);
 
-  // 🛡️ NOUVEAU : Fonction utilitaire pour communiquer avec l'API sécurisée
+  // ✅ Nettoyage critique du GPS au démontage pour éviter les crashs de l'onglet (iOS Jetsam)
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
   const updateOrderSecurely = async (payload: { orderId: number; status?: string; lat?: number; lng?: number }) => {
     try {
       const res = await fetch('/api/driver/update-order', {
@@ -81,7 +89,6 @@ export default function DriverDashboard() {
 
     setGeoError(null);
 
-    // ✅ SÉCURITÉ #4 : On passe par l'API au lieu de l'écriture directe client
     const success = await updateOrderSecurely({ orderId, status: "En livraison" });
     
     if (success) {
@@ -91,7 +98,6 @@ export default function DriverDashboard() {
       watchIdRef.current = navigator.geolocation.watchPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          // ✅ SÉCURITÉ #4 : Mise à jour GPS via API
           await updateOrderSecurely({ orderId, lat: latitude, lng: longitude });
         },
         (error) => {
@@ -113,7 +119,6 @@ export default function DriverDashboard() {
       watchIdRef.current = null;
     }
 
-    // ✅ SÉCURITÉ #4 : Clôture via API (nettoyage lat/lng automatique côté serveur)
     const success = await updateOrderSecurely({ orderId, status: "Livrée" });
 
     if (success) {
@@ -146,6 +151,10 @@ export default function DriverDashboard() {
         <AnimatePresence mode="popLayout">
           {orders.map((order) => {
             const isTrackingMe = activeDeliveryId === order.id;
+            
+            // ✅ CORRECTION : Protection contre les valeurs nulles
+            const safeAddress = order.delivery_address || "";
+            const safeZip = order.delivery_zip || "";
 
             return (
               <motion.div 
@@ -169,21 +178,21 @@ export default function DriverDashboard() {
                       📞 {order.customer_phone}
                     </a>
                   </div>
-                  <span className="font-display font-bold text-xl">{order.total_amount.toFixed(2)} CHF</span>
+                  <span className="font-display font-bold text-xl">{Number(order.total_amount).toFixed(2)} CHF</span>
                 </div>
 
                 <div className="bg-black/50 p-4 rounded-2xl border border-white/5 mb-6">
                   <div className="flex items-start gap-3">
                     <MapPin className="text-gray-500 mt-0.5 shrink-0" size={18} />
                     <div>
-                      <p className="font-bold text-sm leading-tight">{order.delivery_address}</p>
-                      <p className="text-kabuki-red font-black text-xs mt-1">{order.delivery_zip}</p>
+                      <p className="font-bold text-sm leading-tight">{safeAddress}</p>
+                      <p className="text-kabuki-red font-black text-xs mt-1">{safeZip}</p>
                     </div>
                   </div>
                   
-                  {/* ✅ CORRECTION : Lien Google Maps valide */}
+                  {/* ✅ CORRECTION : URL Google Maps universelle validée */}
                   <a 
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${order.delivery_address}, ${order.delivery_zip}, Suisse`)}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${safeAddress}, ${safeZip}, Suisse`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-4 flex items-center justify-center gap-2 w-full bg-neutral-800 hover:bg-neutral-700 py-3 rounded-xl text-xs font-bold uppercase transition"
