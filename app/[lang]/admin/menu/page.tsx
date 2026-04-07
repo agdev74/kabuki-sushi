@@ -69,8 +69,7 @@ export default function AdminMenu() {
   }, [supabase, showToast]); 
 
   useEffect(() => {
-    const loadData = async () => { await fetchMenu(); };
-    loadData();
+    fetchMenu();
   }, [fetchMenu]);
 
   const toggleAvailability = async (id: number, currentStatus: boolean) => {
@@ -122,7 +121,7 @@ export default function AdminMenu() {
       setUploading(true);
       if (!e.target.files || e.target.files.length === 0) return;
       const file = e.target.files[0];
-      const fileName = `${Math.random()}.${file.name.split('.').pop()}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
       const { error: uploadError } = await supabase.storage.from('sushi-images').upload(fileName, file);
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('sushi-images').getPublicUrl(fileName);
@@ -139,7 +138,11 @@ export default function AdminMenu() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setActionLoading(true);
-    const productData = { ...form, price: parseFloat(form.price as string) };
+    
+    // ✅ CORRECTION iOS : Remplacement de la virgule par un point pour le parseFloat
+    const safePrice = String(form.price).replace(',', '.');
+    const productData = { ...form, price: parseFloat(safePrice) };
+    
     try {
       if (editingId) {
         const { error } = await supabase.from("menu_items").update(productData).eq("id", editingId);
@@ -186,7 +189,7 @@ export default function AdminMenu() {
   const openEditModal = (item: MenuItem) => {
     setForm({ 
       ...item, 
-      price: item.price.toString(), 
+      price: item.price ? item.price.toString() : "", 
       name_en: item.name_en || "", 
       name_es: item.name_es || "", 
       description_en: item.description_en || "", 
@@ -196,16 +199,17 @@ export default function AdminMenu() {
     setIsModalOpen(true);
   };
 
+  // ✅ CORRECTION TYPE/SAFARI : Protections contre les valeurs nulles (optional chaining)
   const filteredItems = items.filter((item) =>
-    item.name_fr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.name_fr || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+    (item.category || "").toLowerCase().includes((searchTerm || "").toLowerCase())
   );
 
   return (
     <div className="p-4 md:p-10 bg-black min-h-screen text-white pt-24 md:pt-32">
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={`fixed bottom-10 right-10 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md ${toast.type === 'success' ? 'bg-neutral-900/90 border-green-500/50 text-green-400' : 'bg-neutral-900/90 border-red-500/50 text-red-400'}`}>
+          <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className={`fixed bottom-10 right-10 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md ${toast.type === 'success' ? 'bg-neutral-900/90 border-green-500/50 text-green-400' : 'bg-neutral-900/90 border-red-500/50 text-red-400'}`}>
             {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
             <span className="font-bold text-sm uppercase tracking-widest">{toast.message}</span>
           </motion.div>
@@ -253,7 +257,8 @@ export default function AdminMenu() {
                     <tr key={item.id} className={`transition-colors group ${!item.is_available ? 'bg-red-900/5 opacity-60' : 'hover:bg-white/5'}`}>
                       <td className="p-5 flex items-center gap-4">
                         <div className="relative w-12 h-12 shrink-0">
-                          <Image src={item.image_url || "/placeholder-sushi.jpg"} alt={item.name_fr} fill className={`rounded-xl object-cover bg-neutral-800 border border-neutral-800 shadow-lg ${!item.is_available ? 'grayscale' : ''}`} />
+                          {/* ✅ CORRECTION : Prévention du crash si item.name_fr est null */}
+                          <Image src={item.image_url || "/placeholder-sushi.jpg"} alt={item.name_fr || "Produit"} fill className={`rounded-xl object-cover bg-neutral-800 border border-neutral-800 shadow-lg ${!item.is_available ? 'grayscale' : ''}`} />
                         </div>
                         <div>
                           <div className="font-bold text-white">{item.name_fr}</div>
@@ -266,11 +271,11 @@ export default function AdminMenu() {
                           {updatingId === item.id ? <RefreshCw size={12} className="animate-spin" /> : item.is_available ? <><Power size={12} /> Actif</> : <><PowerOff size={12} /> Épuisé</>}
                         </button>
                       </td>
-                      <td className="p-5 text-center font-mono text-kabuki-red font-bold">{Number(item.price).toFixed(2)} CHF</td>
+                      <td className="p-5 text-center font-mono text-kabuki-red font-bold">{Number(item.price || 0).toFixed(2)} CHF</td>
                       <td className="p-5 text-right">
                         <div className="flex justify-end gap-3">
                           <button onClick={() => openEditModal(item)} className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(item.id, item.name_fr)} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition"><Trash2 size={16} /></button>
+                          <button onClick={() => handleDelete(item.id, item.name_fr || String(item.id))} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -284,7 +289,8 @@ export default function AdminMenu() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          // ✅ CORRECTION GPU/SAFARI : Désactivation du backdrop-blur sur mobile et forçage de l'accélération matérielle
+          <div className="fixed inset-0 bg-black/95 md:backdrop-blur-md z-50 flex items-center justify-center p-4 transition-opacity" style={{ WebkitTransform: 'translate3d(0,0,0)' }}>
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-neutral-900 border border-neutral-800 p-6 md:p-8 rounded-3xl max-w-4xl w-full shadow-2xl overflow-y-auto max-h-[90vh]">
               <div className="flex justify-between items-center mb-8 border-b border-neutral-800 pb-4">
                 <h2 className="text-2xl font-bold uppercase tracking-tighter">{editingId ? "Modifier" : "Ajouter"}</h2>
@@ -304,7 +310,7 @@ export default function AdminMenu() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div><label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block">Prix (CHF)</label><input type="number" step="0.05" className="w-full bg-black border border-neutral-800 p-3 rounded-xl outline-none focus:border-kabuki-red transition text-white" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required /></div>
+                  <div><label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block">Prix (CHF)</label><input type="text" inputMode="decimal" className="w-full bg-black border border-neutral-800 p-3 rounded-xl outline-none focus:border-kabuki-red transition text-white" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required /></div>
                   <div>
                     <label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block">Catégorie</label>
                     <select className="w-full bg-black border border-neutral-800 p-3 rounded-xl outline-none focus:border-kabuki-red transition text-white" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
@@ -312,6 +318,10 @@ export default function AdminMenu() {
                       <option value="Sushis">Sushis</option>
                       <option value="Les Signatures (Créations Kabuki)">Signatures</option>
                       <option value="Box à Partager">Box</option>
+                      <option value="Boissons">Boissons</option>
+                      <option value="Hand Roll">Hand Roll</option>
+                      <option value="Yakitori">Yakitori</option>
+                      <option value="Entrées & Accompagnements">Entrées & Accompagnements</option>
                     </select>
                   </div>
                 </div>
