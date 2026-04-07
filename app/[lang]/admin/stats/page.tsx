@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
 import { createClient } from "@/utils/supabase/client";
 import { 
   TrendingUp, ShoppingBag, 
@@ -33,12 +32,10 @@ interface StatCardProps {
 }
 
 export default function AdminStatsPage() {
-  // ✅ CORRECTION CLIENT : On initialise le client Supabase
   const supabase = useMemo(() => createClient(), []);
 
   const [loading, setLoading] = useState(true);
   
-  // États pour la plage de dates
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const lastDay = now.toISOString().split('T')[0];
@@ -48,9 +45,9 @@ export default function AdminStatsPage() {
 
   const [stats, setStats] = useState({
     totalRevenue: 0,
-    rangeRevenueBrut: 0, // CA payé par les clients
-    rangeRevenueNet: 0,  // CA après commissions Stripe
-    rangeFees: 0,        // Total des frais Stripe
+    rangeRevenueBrut: 0, 
+    rangeRevenueNet: 0,  
+    rangeFees: 0,        
     totalOrdersCount: 0,
     rangeOrdersCount: 0,
     averageBasket: 0,
@@ -61,11 +58,10 @@ export default function AdminStatsPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
 
   const calculateStats = useCallback((orders: Order[]) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // ✅ CORRECTION SAFARI : Forcer le format ISO strict pour éviter les décalages de fuseaux horaires
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T23:59:59.999`);
 
-    // Configuration des frais Stripe (2.9% + 0.30 CHF)
     const STRIPE_PERCENT = 0.029;
     const STRIPE_FIXED = 0.30;
 
@@ -79,15 +75,19 @@ export default function AdminStatsPage() {
     const productMap: Record<string, number> = {};
 
     orders.forEach(order => {
-      const orderDate = new Date(order.created_at);
-      const amount = Number(order.total_amount);
+      // ✅ CORRECTION SAFARI : Remplacer l'espace par un 'T' pour la norme ISO 8601
+      const safeDateStr = order.created_at ? order.created_at.replace(' ', 'T') : '';
+      const orderDate = new Date(safeDateStr);
+      
+      // ✅ CORRECTION SÉCURITÉ : Fallback à 0 si total_amount est null
+      const amount = Number(order.total_amount || 0);
+      
       totalRev += amount;
 
       if (orderDate >= start && orderDate <= end) {
         rangeRevBrut += amount;
         rangeCount++;
         
-        // Calcul des frais Stripe sur cette commande
         if (amount > 0) {
           const orderFee = (amount * STRIPE_PERCENT) + STRIPE_FIXED;
           rangeFeesAccumulator += orderFee;
@@ -99,7 +99,9 @@ export default function AdminStatsPage() {
 
         if (Array.isArray(order.items)) {
           order.items.forEach((item: OrderItem) => {
-            productMap[item.name] = (productMap[item.name] || 0) + (item.quantity || 1);
+            // ✅ CORRECTION SÉCURITÉ : Gérer les noms de produits potentiellement nulls
+            const productName = item.name || 'Produit Inconnu';
+            productMap[productName] = (productMap[productName] || 0) + (item.quantity || 1);
           });
         }
       }
@@ -140,30 +142,33 @@ export default function AdminStatsPage() {
       setLoading(false);
     }
     getStats();
-  }, [calculateStats, supabase]); // Ajout de supabase aux dépendances
+  }, [calculateStats, supabase]); 
 
   const exportToCSV = () => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // ✅ CORRECTION SAFARI : Format ISO strict pour l'export CSV
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T23:59:59.999`);
 
     const rangeData = allOrders.filter(o => {
-      const d = new Date(o.created_at);
+      const safeDateStr = o.created_at ? o.created_at.replace(' ', 'T') : '';
+      const d = new Date(safeDateStr);
       return d >= start && d <= end;
     });
 
     const csvRows = [
       ["Date", "Type", "Brut (CHF)", "Frais Est. (CHF)", "Net Est. (CHF)", "Articles"],
       ...rangeData.map(o => {
-        const brut = Number(o.total_amount);
+        const brut = Number(o.total_amount || 0);
         const fees = (brut * 0.029) + 0.30;
+        const safeDateStr = o.created_at ? o.created_at.replace(' ', 'T') : '';
+        
         return [
-          new Date(o.created_at).toLocaleDateString('fr-FR'),
-          o.order_type,
+          new Date(safeDateStr).toLocaleDateString('fr-FR'),
+          o.order_type || 'N/A',
           brut.toFixed(2),
           fees.toFixed(2),
           (brut - fees).toFixed(2),
-          o.items.map(i => `${i.quantity}x ${i.name}`).join(" | ")
+          Array.isArray(o.items) ? o.items.map(i => `${i.quantity || 1}x ${i.name || 'Produit'}`).join(" | ") : ''
         ];
       })
     ];
@@ -172,7 +177,7 @@ export default function AdminStatsPage() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Kabuki_Compta_${startDate}_au_${endDate}.csv`;
+    link.download = `PlanetFood_Compta_${startDate}_au_${endDate}.csv`; // Ajustement du nom du fichier
     link.click();
   };
 
@@ -223,7 +228,6 @@ export default function AdminStatsPage() {
         </button>
       </div>
 
-      {/* KPI CARDS : FOCUS SUR LE NET */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="CA Brut (Reçu)" 
@@ -256,7 +260,6 @@ export default function AdminStatsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* TOP PRODUITS */}
         <div className="lg:col-span-2 bg-neutral-900/50 border border-neutral-800 rounded-[32px] p-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-kabuki-red/10 rounded-lg"><Trophy size={20} className="text-kabuki-red" /></div>
@@ -278,7 +281,6 @@ export default function AdminStatsPage() {
           </div>
         </div>
 
-        {/* RÉPARTITION CANAUX */}
         <div className="bg-neutral-900/50 border border-neutral-800 rounded-[32px] p-8">
           <h2 className="text-lg font-bold uppercase tracking-widest mb-8">Canaux de vente</h2>
           <div className="space-y-6">
