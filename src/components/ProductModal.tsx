@@ -21,7 +21,8 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
-const MOCHI_FLAVORS = ["Mangue", "Matcha", "Fleur de cerisier"];
+// ✅ AJOUT DU PARFUM "PASSION"
+const MOCHI_FLAVORS = ["Mangue", "Matcha", "Fleur de cerisier", "Passion"];
 
 export default function ProductModal({ item, onClose }: ProductModalProps) {
   const { lang } = useTranslation();
@@ -262,7 +263,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
               </button>
             </div>
 
-            {/* ✅ MODIFICATION VISUELLE DE DEBUG : "AJOUTER AU PANIER" AU LIEU DE "Ajouter" */}
             <button 
               onClick={handleAddToCart}
               className="w-full bg-kabuki-red hover:bg-red-700 text-white font-bold min-h-[64px] h-16 rounded-2xl uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
