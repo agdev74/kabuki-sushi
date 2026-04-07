@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { m } from "framer-motion"; 
-import { X, Minus, Plus, ShoppingCart, Maximize2 } from "lucide-react";
+import { X, Minus, Plus, ShoppingCart, Maximize2, Info } from "lucide-react";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
 import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
@@ -21,10 +21,19 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
+const MOCHI_FLAVORS = ["Mangue", "Matcha", "Fleur de cerisier"];
+
 export default function ProductModal({ item, onClose }: ProductModalProps) {
   const { lang } = useTranslation();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
+  
+  // États spécifiques pour les Mochis
+  const [mochiFlavor1, setMochiFlavor1] = useState(MOCHI_FLAVORS[0]);
+  const [mochiFlavor2, setMochiFlavor2] = useState(MOCHI_FLAVORS[1]);
+
+  // Détection si le produit est un Mochi (basé sur le nom français, insensible à la casse)
+  const isMochi = item.name_fr.toLowerCase().includes("mochi");
 
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -52,14 +61,26 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
   }, [lang, item]);
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
+    if (isMochi) {
+      // Pour les mochis, la quantité ajoutée correspond au pack (ex: 2 Mochi = 1 article dans le panier)
+      // On ajoute les parfums choisis directement dans le nom de l'article pour la cuisine
       addToCart({
         id: item.id,
-        name: name,
+        name: `${name} (${mochiFlavor1} & ${mochiFlavor2})`,
         price: item.price,
         image_url: item.image_url,
         category: item.category,
       });
+    } else {
+      for (let i = 0; i < quantity; i++) {
+        addToCart({
+          id: item.id,
+          name: name,
+          price: item.price,
+          image_url: item.image_url,
+          category: item.category,
+        });
+      }
     }
     onClose();
   };
@@ -136,36 +157,71 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
             </p>
           </div>
 
-          {/* ACTIONS : Sélecteur centré et Bouton agrandi */}
+          {/* ACTIONS DYNAMIQUES */}
           <div className="mt-auto pt-6 flex flex-col gap-4 w-full shrink-0">
             
-            <div className="flex items-center justify-between bg-white/5 border border-neutral-800 rounded-2xl min-h-[64px] h-16 w-full px-4 shrink-0">
-              <button 
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
-              >
-                <Minus size={20} />
-              </button>
-              
-              <span className="font-bold text-white text-xl">
-                {quantity}
-              </span>
-              
-              <button 
-                onClick={() => setQuantity(Math.min(20, quantity + 1))}
-                className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
+            {isMochi ? (
+              /* Interface de Sélection Mochis (2 pièces par défaut) */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[10px] text-blue-400 font-bold uppercase tracking-widest bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                  <Info size={14} /> Portion de 2 pièces : Choisissez vos parfums
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <select 
+                    value={mochiFlavor1} 
+                    onChange={(e) => setMochiFlavor1(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 p-4 rounded-xl outline-none focus:border-kabuki-red transition text-white font-bold text-sm appearance-none"
+                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
+                  >
+                    {MOCHI_FLAVORS.map(flavor => (
+                      <option key={`m1-${flavor}`} value={flavor}>{flavor}</option>
+                    ))}
+                  </select>
+                  
+                  <select 
+                    value={mochiFlavor2} 
+                    onChange={(e) => setMochiFlavor2(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 p-4 rounded-xl outline-none focus:border-kabuki-red transition text-white font-bold text-sm appearance-none"
+                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
+                  >
+                    {MOCHI_FLAVORS.map(flavor => (
+                      <option key={`m2-${flavor}`} value={flavor}>{flavor}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              /* Interface Standard (Quantité) */
+              <div className="flex items-center justify-between bg-white/5 border border-neutral-800 rounded-2xl min-h-[64px] h-16 w-full px-4 shrink-0">
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
+                >
+                  <Minus size={20} />
+                </button>
+                
+                <span className="font-bold text-white text-xl">
+                  {quantity}
+                </span>
+                
+                <button 
+                  onClick={() => setQuantity(Math.min(20, quantity + 1))}
+                  className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            )}
 
-            {/* ✅ AJUSTEMENT : text-sm pour plus de visibilité */}
             <button 
               onClick={handleAddToCart}
-              className="w-full bg-kabuki-red hover:bg-red-700 text-white font-bold min-h-[64px] h-16 rounded-2xl uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
+              className="w-full bg-kabuki-red hover:bg-red-700 text-white font-bold min-h-[64px] h-16 rounded-2xl uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0 mt-2"
             >
               <ShoppingCart size={20} />
-              <span>Ajouter • {(item.price * quantity).toFixed(2)} CHF</span>
+              <span>
+                {isMochi ? 'Ajouter • ' : `Ajouter • `} 
+                {(item.price * (isMochi ? 1 : quantity)).toFixed(2)} CHF
+              </span>
             </button>
           </div>
         </div>
