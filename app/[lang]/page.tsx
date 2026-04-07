@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import HomeClient from "src/components/HomeClient";
+import HomeClient from "@/components/HomeClient";
 
 // ✅ Ici on utilise params pour le SEO, donc on le garde
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {

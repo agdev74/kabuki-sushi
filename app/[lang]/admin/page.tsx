@@ -1,6 +1,6 @@
 "use client";
 
-import OrdersList from "src/components/admin/OrdersList";
+import OrdersList from "@/components/admin/OrdersList";
 import Reveal from "@/components/Reveal";
 
 export default function AdminDashboardPage() {
