@@ -30,13 +30,28 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
   const [quantity, setQuantity] = useState(1);
   
   // Tableau stockant les parfums pour chaque portion sélectionnée
-  // Initialisé avec 1 portion (2 mochis) par défaut
   const [mochiSelections, setMochiSelections] = useState<[string, string][]>([
     [MOCHI_FLAVORS[0], MOCHI_FLAVORS[0]]
   ]);
 
-  // Détection stricte basée sur l'ID Supabase (4)
-  const isMochi = Number(item.id) === 4;
+  // Génération dynamique des traductions (Placé avant la détection isMochi pour pouvoir l'utiliser)
+  const { name, desc } = useMemo(() => {
+    const currentLang = lang.toLowerCase();
+    const n = currentLang === "es" ? item.name_es : currentLang === "en" ? item.name_en : item.name_fr;
+    const d = currentLang === "es" ? item.description_es : currentLang === "en" ? item.description_en : item.description_fr;
+    return {
+      name: n?.trim() ? n : item.name_fr,
+      desc: d?.trim() ? d : item.description_fr
+    };
+  }, [lang, item]);
+
+  // ✅ CORRECTION : Détection "blindée". Vérifie l'ID (nombre ou string) ET le nom affiché.
+  const isMochi = useMemo(() => {
+    const isIdMatch = String(item.id) === "4";
+    const isNameFrMatch = (item.name_fr || "").toLowerCase().includes("mochi");
+    const isCurrentNameMatch = (name || "").toLowerCase().includes("mochi");
+    return isIdMatch || isNameFrMatch || isCurrentNameMatch;
+  }, [item.id, item.name_fr, name]);
 
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -53,17 +68,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     };
   }, [onClose]);
 
-  const { name, desc } = useMemo(() => {
-    const currentLang = lang.toLowerCase();
-    const n = currentLang === "es" ? item.name_es : currentLang === "en" ? item.name_en : item.name_fr;
-    const d = currentLang === "es" ? item.description_es : currentLang === "en" ? item.description_en : item.description_fr;
-    return {
-      name: n?.trim() ? n : item.name_fr,
-      desc: d?.trim() ? d : item.description_fr
-    };
-  }, [lang, item]);
-
-  // Fonction pour gérer l'ajout ou le retrait de portions (met à jour le tableau des saveurs)
   const handleQuantityChange = (newQty: number) => {
     if (newQty < 1 || newQty > 20) return;
     
@@ -72,13 +76,11 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     if (isMochi) {
       setMochiSelections(prev => {
         const newSelections = [...prev];
-        // Si on ajoute des portions, on ajoute des saveurs par défaut
         if (newQty > prev.length) {
           for (let i = prev.length; i < newQty; i++) {
             newSelections.push([MOCHI_FLAVORS[0], MOCHI_FLAVORS[0]]);
           }
         } 
-        // Si on retire des portions, on coupe le tableau
         else if (newQty < prev.length) {
           newSelections.splice(newQty);
         }
@@ -87,7 +89,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
     }
   };
 
-  // Met à jour la saveur d'un mochi spécifique dans une portion donnée
   const updateMochiFlavor = (portionIndex: number, mochiIndex: 0 | 1, flavor: string) => {
     setMochiSelections(prev => {
       const newSelections = [...prev];
@@ -98,7 +99,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
 
   const handleAddToCart = () => {
     if (isMochi) {
-      // Ajoute chaque portion de Mochi individuellement au panier avec ses propres parfums
       mochiSelections.forEach(selection => {
         addToCart({
           id: item.id,
@@ -109,7 +109,6 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
         });
       });
     } else {
-      // Comportement standard pour les autres produits
       for (let i = 0; i < quantity; i++) {
         addToCart({
           id: item.id,
