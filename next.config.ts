@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self' https://*.supabase.co",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co https://accounts.google.com https://*.gstatic.com",
-              "connect-src 'self' https://*.stripe.com https://*.supabase.co https://*.sentry.io https://accounts.google.com",
+              "connect-src 'self' https://*.stripe.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://accounts.google.com",
               "frame-src 'self' https://js.stripe.com https://accounts.google.com",
               "img-src 'self' data: blob: https://*.supabase.co https://*.gstatic.com https://lh3.googleusercontent.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
