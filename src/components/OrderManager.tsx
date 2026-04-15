@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode d'export
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChefHat, Truck, PackageCheck, Loader2, ShoppingBasket } from "lucide-react";
@@ -25,14 +24,14 @@ interface Order {
 }
 
 export default function OrderManager() {
-  // ✅ CORRECTION CLIENT : Initialisation du client Supabase à l'intérieur du composant
-  const supabase = createClient();
+  // ✅ CORRECTION : On utilise useMemo (ou useState) pour garder la même instance 
+  // de Supabase entre chaque rendu du composant.
+  const supabase = useMemo(() => createClient(), []);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. On définit la fonction de fetch À L'INTÉRIEUR pour la synchronisation
     const syncOrders = async () => {
       const { data, error } = await supabase
         .from("orders")
@@ -46,17 +45,15 @@ export default function OrderManager() {
       setLoading(false);
     };
 
-    // 2. On l'appelle
     syncOrders();
 
-    // 3. Mise en place du Realtime
     const subscription = supabase
       .channel("orders-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         () => {
-          syncOrders(); // On réutilise la fonction interne
+          syncOrders();
         }
       )
       .subscribe();
@@ -64,7 +61,7 @@ export default function OrderManager() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [supabase]); // Ajout de supabase dans le tableau des dépendances
+  }, [supabase]); // Maintenant, supabase ne change jamais, donc pas de boucle !
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     const { error } = await supabase
