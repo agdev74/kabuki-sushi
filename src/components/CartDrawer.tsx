@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin, Tag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -78,7 +78,7 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const { items, updateQuantity, removeFromCart, totalPrice, clearCart, totalItems } = useCart();
   const { lang } = useTranslation();
@@ -237,8 +237,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]" aria-hidden="true" />
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed top-0 right-0 h-full w-full md:w-[450px] bg-neutral-900 border-l border-neutral-800 z-[101] flex flex-col shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100" aria-hidden="true" />
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed top-0 right-0 h-full w-full md:w-112.5 bg-neutral-900 border-l border-neutral-800 z-101 flex flex-col shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="cart-title">
             {!isSuccess && (
               <div className="flex items-center justify-between p-6 border-b border-neutral-800 bg-black/20">
                 <h2 id="cart-title" className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">

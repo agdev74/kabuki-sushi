@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 // ✅ CORRECTION IMPORT : On utilise la nouvelle méthode d'export
 import { createClient } from "@/utils/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,8 +28,7 @@ interface OrderTrackerProps {
 }
 
 export default function OrderTracker({ orderId }: OrderTrackerProps) {
-  // ✅ CORRECTION CLIENT : Initialisation du client Supabase à l'intérieur du composant
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);

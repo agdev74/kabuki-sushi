@@ -125,7 +125,7 @@ export default function OrderManager() {
                     </div>
                   </div>
 
-                  <div className="flex-1 bg-black/40 p-5 rounded-2xl border border-neutral-800/50 min-w-[300px]">
+                  <div className="flex-1 bg-black/40 p-5 rounded-2xl border border-neutral-800/50 min-w-75">
                     <ul className="space-y-2">
                       {order.items.map((item, idx) => (
                         <li key={idx} className="flex justify-between text-sm">
@@ -137,7 +137,7 @@ export default function OrderManager() {
                     </ul>
                   </div>
 
-                  <div className="flex flex-col items-end gap-3 min-w-[180px]">
+                  <div className="flex flex-col items-end gap-3 min-w-45">
                     <div className="text-2xl font-display font-bold text-white">
                       {order.total_amount.toFixed(2)} <span className="text-xs text-gray-500">CHF</span>
                     </div>
