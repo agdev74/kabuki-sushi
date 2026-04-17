@@ -200,7 +200,7 @@ export default function OrderTracker({ orderId }: OrderTrackerProps) {
           >
             <Link 
               href={`/${lang}/menu`}
-              onClick={handleFinish}
+              onClick={handleFinish} 
               className="w-full bg-white text-black font-bold py-5 rounded-2xl uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-kabuki-red hover:text-white transition-all shadow-xl"
             >
               Nouvelle commande <ArrowRight size={16} />
