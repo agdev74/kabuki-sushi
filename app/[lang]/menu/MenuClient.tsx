@@ -10,24 +10,61 @@ import ProductModal from "@/components/ProductModal";
 import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
 
 // ─── Ordre d'affichage des catégories ─────────────────────────────────────────
-// Les catégories non listées reçoivent le poids par défaut (50),
-// ce qui les place entre les plats principaux et les desserts/boissons.
+// Les noms sont comparés en minuscules pour être insensibles à la casse.
+// Les catégories non listées reçoivent le poids 50 (entre plats et sides).
 const CATEGORY_ORDER: Record<string, number> = {
-  burritos:         1,
-  box:              2,
-  sushi:            3,
-  maki:             3,
-  rolls:            3,
-  "spring rolls":   3,
-  tartare:          4,
-  chirashi:         4,
-  sides:            5,
-  accompagnements:  5,
-  entrées:          5,
-  entrees:          5,
-  desserts:         99,
-  boissons:         100,
-  drinks:           100,
+  // 1 — Burrito Sushi (tête de carte)
+  "burrito sushi":      1,
+  burritos:             1,
+  burrito:              1,
+
+  // 2 — Box & partager
+  "box & partager":     2,
+  "box":                2,
+
+  // 10-29 — Plats principaux (chaque ligne = sous-catégorie distincte)
+  "maki & california":  10,
+  "maki california":    10,
+  maki:                 11,
+  "california":         11,
+  signatures:           12,
+  signature:            12,
+  "salmon roll":        13,
+  "salmon rolls":       13,
+  futomaki:             14,
+  nigiri:               15,
+  nigiris:              15,
+  sushi:                16,
+  rolls:                17,
+  "spring rolls":       18,
+  tartare:              20,
+  chirashi:             21,
+
+  // 60-70 — Sides / accompagnements
+  yakitoris:            60,
+  yakitori:             60,
+  accompagnements:      61,
+  accompagnement:       61,
+  sides:                62,
+  side:                 62,
+  "entrées":            63,
+  entrees:              63,
+  entrée:               63,
+  entree:               63,
+
+  // 80 — Handrolls (juste avant desserts)
+  handrolls:            80,
+  handroll:             80,
+  "hand rolls":         80,
+  "hand roll":          80,
+
+  // 99-100 — Fin de carte (toujours en dernier)
+  desserts:             99,
+  dessert:              99,
+  boissons:             100,
+  boisson:              100,
+  drinks:               100,
+  drink:                100,
 };
 
 function getCategoryWeight(category: string | undefined): number {
@@ -243,10 +280,11 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
         </div>
 
         <div className="sticky top-70px z-30 bg-[#080808]/80 backdrop-blur-xl py-4 border-b border-neutral-900 mb-8">
-          <div className="container mx-auto px-4">
-            <div className="relative max-w-md mx-auto mb-6">
+          {/* Barre de recherche : contrainte à la largeur container */}
+          <div className="container mx-auto px-4 mb-4">
+            <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" size={16} aria-hidden="true" />
-              <input 
+              <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -255,24 +293,28 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
                 className="w-full bg-black border border-neutral-800 rounded-2xl py-2 pl-12 pr-4 text-xs text-white focus:border-kabuki-red outline-none shadow-xl transition-all"
               />
             </div>
-
-            <nav className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-2 no-scrollbar" aria-label="Catégories">
-              {filterCategories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  aria-pressed={activeCategory === cat.id}
-                  className={`shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                    activeCategory === cat.id 
-                    ? "bg-kabuki-red border-kabuki-red text-white" 
-                    : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </nav>
           </div>
+
+          {/* Barre de filtres : pleine largeur pour un scroll sans coupure */}
+          <nav
+            className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-1 px-4 no-scrollbar"
+            aria-label="Catégories"
+          >
+            {filterCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                aria-pressed={activeCategory === cat.id}
+                className={`shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                  activeCategory === cat.id
+                    ? "bg-kabuki-red border-kabuki-red text-white"
+                    : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
         <div className="container mx-auto px-4">
