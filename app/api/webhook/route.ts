@@ -5,6 +5,7 @@
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
+import { sendWhatsAppAlert } from '@/lib/twilio';
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
@@ -156,6 +157,26 @@ async function handleCheckoutCompleted(
   }
 
   console.info(`[webhook] ✅ Commande ${order.id} créée pour session ${session.id}`);
+
+  // Notification WhatsApp fire-and-forget
+  const customerName =
+    session.customer_details?.name ??
+    session.customer_details?.email ??
+    "Client";
+  const totalCHF = (session.amount_total ?? 0) / 100;
+  const itemLines = orderItems
+    .map((i) => `${i.quantity}× ${i.name_snapshot}`)
+    .join("\n• ");
+  const message =
+    `🍣 *Nouvelle Commande — Kabuki* #KBK-${order.id}\n` +
+    `👤 ${customerName}\n` +
+    (itemLines ? `\n📋 *Contenu :*\n• ${itemLines}\n` : "") +
+    `\n💰 Total : ${totalCHF.toFixed(2)} CHF\n` +
+    `⚡ À prendre en charge !`;
+
+  sendWhatsAppAlert(message).catch((err) =>
+    console.error("[webhook] Erreur WhatsApp :", err),
+  );
 }
 
 async function handlePaymentFailed(

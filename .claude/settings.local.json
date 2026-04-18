@@ -4,7 +4,9 @@
       "Bash(xargs grep *)",
       "Bash(node -e \"const df = require\\('c:/Users/adrie/kabuki-sushi/node_modules/date-fns/package.json'\\); console.log\\(df.version\\); console.log\\(Object.keys\\(df.exports || {}\\).filter\\(k => k.includes\\('tz'\\) || k.includes\\('zone'\\)\\)\\)\")",
       "Bash(npx tsc *)",
-      "Bash(grep -E \"StatusBadge|AdminHeader|admin/page|admin\\\\\\\\\\\\\\\\page\")"
+      "Bash(grep -E \"StatusBadge|AdminHeader|admin/page|admin\\\\\\\\\\\\\\\\page\")",
+      "Bash(npm install *)",
+      "Bash(node -e \"const t = require\\('./node_modules/twilio'\\); console.log\\('twilio OK, version:', require\\('./node_modules/twilio/package.json'\\).version\\)\")"
     ]
   }
 }

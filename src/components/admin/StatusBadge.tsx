@@ -99,16 +99,29 @@ export default function StatusBadge() {
       setPhase("saving");
 
       const next = !isClosed;
+      const expiryISO = next ? getServiceBlockExpiry().toISOString() : undefined;
+
       const { error } = await supabase
         .from("store_settings")
         .update({
           is_emergency_closed: next,
-          emergency_closed_until: next ? getServiceBlockExpiry().toISOString() : null,
+          emergency_closed_until: expiryISO ?? null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", 1);
 
-      if (!error) setIsClosed(next);
+      if (!error) {
+        setIsClosed(next);
+        // Notification WhatsApp fire-and-forget
+        fetch("/api/notifications/whatsapp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: next ? "emergency_open" : "emergency_close",
+            emergencyUntil: expiryISO,
+          }),
+        }).catch(() => {});
+      }
       setPhase("idle");
     }
   };

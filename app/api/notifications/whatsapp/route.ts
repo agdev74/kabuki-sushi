@@ -1,40 +1,65 @@
 /**
  * /api/notifications/whatsapp
  *
- * Route de notification WhatsApp non-bloquante (Règle Sécurité #2).
- * Squelette prêt pour Twilio (défaut) ou Meta Cloud API.
- *
- * Variables d'environnement requises pour activer les envois réels :
- *   TWILIO_ACCOUNT_SID    — SID du compte Twilio
- *   TWILIO_AUTH_TOKEN     — Token d'auth Twilio
- *   TWILIO_WHATSAPP_FROM  — Numéro Twilio WhatsApp (ex: whatsapp:+14155238886)
+ * Route de notification WhatsApp non-bloquante.
+ * Utilise le SDK Twilio via @/lib/twilio.
  *
  * Événements supportés :
- *   "new_delivery"    — Nouvelle commande Livraison (après paiement confirmé)
+ *   "new_order"       — Nouvelle commande (toute, après paiement validé)
+ *   "new_delivery"    — Nouvelle livraison (déclenchée depuis la cuisine admin)
  *   "order_ready"     — Commande marquée "Prête à être livrée"
  *   "order_cancelled" — Commande annulée
+ *   "emergency_open"  — Fermeture d'urgence activée
+ *   "emergency_close" — Fermeture d'urgence levée
  */
 
 import { NextResponse } from "next/server";
+import { sendWhatsAppAlert } from "@/lib/twilio";
 
-// Numéro admin Kabuki Sushi (Règle Sécurité #3 : format E.164 strict)
-const ADMIN_PHONE = "+41786767100";
-
-export type WhatsAppEvent = "new_delivery" | "order_ready" | "order_cancelled";
+export type WhatsAppEvent =
+  | "new_order"
+  | "new_delivery"
+  | "order_ready"
+  | "order_cancelled"
+  | "emergency_open"
+  | "emergency_close";
 
 interface WhatsAppPayload {
   event: WhatsAppEvent;
-  orderId: number;
+  // Champs commandes
+  orderId?: number;
   customerName?: string;
   orderType?: string;
   deliveryAddress?: string;
+  // Champs new_order uniquement
+  items?: string[];      // ex: ["2× Sashimi Saumon", "1× Gyoza"]
+  totalCHF?: number;
+  pickupTime?: string;
+  // Champs emergency_* uniquement
+  emergencyUntil?: string;  // ISO string
 }
 
-// ─── Construction du message ──────────────────────────────────────────────────
+// ─── Construction des messages ────────────────────────────────────────────────
 
 function buildMessage(payload: WhatsAppPayload): string {
-  const { event, orderId, customerName = "Client", deliveryAddress } = payload;
+  const { event, orderId, customerName = "Client", orderType, deliveryAddress } = payload;
+
   switch (event) {
+
+    case "new_order": {
+      const isDelivery = orderType === "Livraison";
+      const itemLines = (payload.items ?? []).map(i => `• ${i}`).join("\n");
+      return (
+        `🍣 *Nouvelle Commande — Kabuki* #KBK-${orderId}\n` +
+        `👤 ${customerName}\n` +
+        (isDelivery ? `🛵 Livraison\n📍 ${deliveryAddress ?? "adresse non renseignée"}\n` : `🏠 À emporter\n`) +
+        (itemLines ? `\n📋 *Contenu :*\n${itemLines}\n` : "") +
+        `\n💰 Total : ${(payload.totalCHF ?? 0).toFixed(2)} CHF` +
+        (payload.pickupTime ? `\n⏱ Prévu pour : ${payload.pickupTime}` : "") +
+        `\n⚡ À prendre en charge !`
+      );
+    }
+
     case "new_delivery":
       return (
         `🍣 *Nouvelle LIVRAISON — Kabuki* #KBK-${orderId}\n` +
@@ -42,80 +67,49 @@ function buildMessage(payload: WhatsAppPayload): string {
         (deliveryAddress ? `📍 Adresse : ${deliveryAddress}\n` : "") +
         `⚡ À prendre en charge dès que possible.`
       );
+
     case "order_ready":
       return (
         `✅ *Commande Prête* — Kabuki #KBK-${orderId}\n` +
         `👤 ${customerName}\n` +
         `🛵 Le livreur peut partir.`
       );
+
     case "order_cancelled":
       return (
         `❌ *Commande Annulée* — Kabuki #KBK-${orderId}\n` +
         `👤 ${customerName}`
       );
+
+    case "emergency_open": {
+      const until = payload.emergencyUntil
+        ? new Intl.DateTimeFormat("fr-CH", {
+            timeZone: "Europe/Zurich",
+            dateStyle: "short",
+            timeStyle: "short",
+          }).format(new Date(payload.emergencyUntil))
+        : "fin du service";
+      return (
+        `🚨 *FERMETURE D'URGENCE — Kabuki*\n` +
+        `⏱ Active jusqu'à : ${until}\n` +
+        `⚠️ Commandes en ligne suspendues.`
+      );
+    }
+
+    case "emergency_close":
+      return (
+        `✅ *Restaurant ROUVERT — Kabuki*\n` +
+        `🎉 Fermeture d'urgence levée manuellement.`
+      );
   }
 }
-
-// ─── Envoi via Twilio WhatsApp ────────────────────────────────────────────────
-
-async function sendViaTwilio(message: string): Promise<void> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM ?? "whatsapp:+14155238886";
-
-  if (!accountSid || !authToken) {
-    // Twilio non configuré : log de simulation pour le développement
-    console.info(`[whatsapp/twilio] Non configuré — message simulé :\n${message}`);
-    return;
-  }
-
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-      },
-      body: new URLSearchParams({
-        From: from,
-        To: `whatsapp:${ADMIN_PHONE}`,
-        Body: message,
-      }).toString(),
-    },
-  );
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Twilio HTTP ${res.status}: ${body}`);
-  }
-}
-
-/*
- * ─── Alternative : Meta Cloud API ──────────────────────────────────────────
- * Pour basculer sur l'API officielle Meta, remplacez sendViaTwilio() par :
- *
- * async function sendViaMeta(message: string): Promise<void> {
- *   const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
- *   const token = process.env.META_WHATSAPP_TOKEN;
- *   if (!phoneNumberId || !token) {
- *     console.info("[whatsapp/meta] Non configuré — message simulé :", message);
- *     return;
- *   }
- *   await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
- *     method: "POST",
- *     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
- *     body: JSON.stringify({
- *       messaging_product: "whatsapp",
- *       to: ADMIN_PHONE,
- *       type: "text",
- *       text: { body: message },
- *     }),
- *   });
- * }
- */
 
 // ─── Handler principal ────────────────────────────────────────────────────────
+
+const VALID_EVENTS: WhatsAppEvent[] = [
+  "new_order", "new_delivery", "order_ready", "order_cancelled",
+  "emergency_open", "emergency_close",
+];
 
 export async function POST(req: Request): Promise<Response> {
   let payload: WhatsAppPayload;
@@ -126,16 +120,14 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
-  const VALID_EVENTS: WhatsAppEvent[] = ["new_delivery", "order_ready", "order_cancelled"];
-  if (!payload.event || !VALID_EVENTS.includes(payload.event) || !payload.orderId) {
-    return NextResponse.json({ error: "Payload invalide" }, { status: 400 });
+  if (!payload.event || !VALID_EVENTS.includes(payload.event)) {
+    return NextResponse.json({ error: "Événement invalide" }, { status: 400 });
   }
 
   const message = buildMessage(payload);
 
-  // Règle Sécurité #2 : fire-and-forget — on répond immédiatement au client,
-  // l'envoi WhatsApp s'effectue en arrière-plan sans bloquer la réponse.
-  sendViaTwilio(message).catch((err) =>
+  // Fire-and-forget — on répond immédiatement, l'envoi s'effectue en arrière-plan.
+  sendWhatsAppAlert(message).catch((err) =>
     console.error("[whatsapp] Erreur envoi :", err),
   );
 
