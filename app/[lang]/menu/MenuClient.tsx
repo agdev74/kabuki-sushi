@@ -9,6 +9,31 @@ import { useTranslation } from "@/context/LanguageContext";
 import ProductModal from "@/components/ProductModal";
 import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
 
+// ─── Ordre d'affichage des catégories ─────────────────────────────────────────
+// Les catégories non listées reçoivent le poids par défaut (50),
+// ce qui les place entre les plats principaux et les desserts/boissons.
+const CATEGORY_ORDER: Record<string, number> = {
+  burritos:         1,
+  box:              2,
+  sushi:            3,
+  maki:             3,
+  rolls:            3,
+  "spring rolls":   3,
+  tartare:          4,
+  chirashi:         4,
+  sides:            5,
+  accompagnements:  5,
+  entrées:          5,
+  entrees:          5,
+  desserts:         99,
+  boissons:         100,
+  drinks:           100,
+};
+
+function getCategoryWeight(category: string | undefined): number {
+  return CATEGORY_ORDER[category?.toLowerCase() ?? ""] ?? 50;
+}
+
 export interface MenuItem extends ContextMenuItem {
   name_fr: string;
   name_en?: string;
@@ -172,15 +197,25 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
 
   const filteredItems = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
-    return items.filter((item) => {
-      const matchesSearch = item.name_fr?.toLowerCase().includes(searchLower) || 
-                          item.description_fr?.toLowerCase().includes(searchLower);
-      const matchesCategory = activeCategory === "Tous" || item.category === activeCategory;
-      return matchesSearch && matchesCategory;
-    });
+    return items
+      .filter((item) => {
+        const matchesSearch =
+          item.name_fr?.toLowerCase().includes(searchLower) ||
+          item.description_fr?.toLowerCase().includes(searchLower);
+        const matchesCategory =
+          activeCategory === "Tous" || item.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => getCategoryWeight(a.category) - getCategoryWeight(b.category));
   }, [items, searchQuery, activeCategory]);
 
-  const rawCategories = useMemo(() => Array.from(new Set(items.map(item => item.category))), [items]);
+  const rawCategories = useMemo(
+    () =>
+      Array.from(new Set(items.map((item) => item.category))).sort(
+        (a, b) => getCategoryWeight(a) - getCategoryWeight(b),
+      ),
+    [items],
+  );
   
   const filterCategories = useMemo(() => [
     { id: "Tous", label: t.menu.all },
