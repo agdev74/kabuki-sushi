@@ -32,6 +32,18 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ─── Scrollbar utilitaires ────────────────────────────────────────────────── */
+@layer utilities {
+  /* Masque la scrollbar native tout en conservant la fonctionnalité de scroll */
+  .no-scrollbar {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / Edge legacy */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari / Opera */
+  }
+}
+
 body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;

@@ -150,7 +150,7 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
               alt={displayName}
               fill
               quality={70} 
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, (max-width: 1536px) 20vw, 17vw"
               className={`object-cover transition-opacity duration-300 group-hover:scale-105 ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
@@ -297,7 +297,7 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
 
           {/* Barre de filtres : pleine largeur pour un scroll sans coupure */}
           <nav
-            className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-1 px-4 no-scrollbar"
+            className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-1 px-4 md:px-8 no-scrollbar"
             aria-label="Catégories"
           >
             {filterCategories.map((cat) => (
@@ -317,14 +317,15 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
           </nav>
         </div>
 
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+        {/* max-w-screen-xl empêche la grille de s'étirer sur les écrans >1280 px */}
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
             {filteredItems.map((item, index) => (
-              <MenuItemCard 
-                key={item.id} 
-                item={item} 
+              <MenuItemCard
+                key={item.id}
+                item={item}
                 index={index}
-                onClick={handleOpenModal} 
+                onClick={handleOpenModal}
               />
             ))}
           </div>
