@@ -107,6 +107,6 @@ export default function AdminHeader({ lang }: { lang: string }) {
           <span className="hidden sm:inline">Quitter</span>
         </button>
       </div>
-    </header>
+    </header> 
   );
 }
