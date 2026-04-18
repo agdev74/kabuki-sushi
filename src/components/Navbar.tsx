@@ -73,7 +73,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
   ];
 
   return (
-    <nav className="bg-kabuki-black text-white fixed w-full z-50 border-b border-neutral-800 shadow-lg">
+    <nav className="bg-kabuki-black text-white fixed w-full z-40 border-b border-neutral-800 shadow-lg">
       <div className="container mx-auto px-6 h-20 flex justify-between items-center">
         
         <TransitionLink 
