@@ -19,7 +19,7 @@ export default function MobileActionBar({ onOpenCart }: MobileActionBarProps) {
   const [showContactMenu, setShowContactMenu] = useState(false);
 
   const isMenuPage = pathname?.includes("/menu");
-  const phoneNumber = "41786041542"; 
+  const phoneNumber = "41786767100";
 
   const text = {
     fr: { contact: "Contact", call: "Appel standard", wa: "WhatsApp", descCall: "Ligne directe", descWa: "Message gratuit", viewCart: "Voir le panier" },
@@ -35,7 +35,7 @@ export default function MobileActionBar({ onOpenCart }: MobileActionBarProps) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "circOut" }}
         style={{ willChange: "transform, opacity" }} // ✅ Accélération GPU
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-[#080808]/90 backdrop-blur-xl border-t border-neutral-800 p-4 z-[40] pb-8 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-[#080808]/90 backdrop-blur-xl border-t border-neutral-800 p-4 z-40 pb-8 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]"
       >
         <AnimatePresence mode="wait">
           {isMenuPage ? (
@@ -108,7 +108,7 @@ export default function MobileActionBar({ onOpenCart }: MobileActionBarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowContactMenu(false)}
-              className="fixed inset-0 bg-black/80 z-[100] backdrop-blur-sm"
+              className="fixed inset-0 bg-black/80 z-100 backdrop-blur-sm"
             />
             
             <m.div 
@@ -117,7 +117,7 @@ export default function MobileActionBar({ onOpenCart }: MobileActionBarProps) {
               exit={{ y: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: "circOut" }}
               style={{ willChange: "transform" }} // ✅ Optimisation GPU pour le slide-up
-              className="fixed bottom-0 left-0 right-0 bg-neutral-950 rounded-t-[32px] p-8 z-[110] border-t border-neutral-800 pb-12"
+              className="fixed bottom-0 left-0 right-0 bg-neutral-950 rounded-t-32px p-8 z-110 border-t border-neutral-800 pb-12"
             >
               <div className="w-12 h-1.5 bg-neutral-800 rounded-full mx-auto mb-8" />
 

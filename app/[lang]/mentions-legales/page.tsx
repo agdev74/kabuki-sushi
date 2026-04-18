@@ -25,7 +25,7 @@ export default function MentionsLegales() {
             <ul className="list-disc pl-5 space-y-2 text-white">
               <li><strong>Raison sociale :</strong> Kabuki Sushi SA/SARL (À adapter)</li>
               <li><strong>Adresse :</strong> 1 Boulevard de la Tour, 1205 Genève, Suisse</li>
-              <li><strong>Téléphone :</strong> +41 78 604 15 42</li>
+              <li><strong>Téléphone :</strong> <a href="tel:+41786767100">078 676 71 00</a></li>
               <li><strong>Email :</strong> contact@kabuki-sushi.ch (À adapter)</li>
               <li><strong>Numéro IDE (UID) :</strong> CHE-XXX.XXX.XXX (À compléter)</li>
               <li><strong>Directeur de la publication :</strong> [Ton Nom]</li>

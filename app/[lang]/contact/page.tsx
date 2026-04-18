@@ -170,7 +170,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-display font-bold text-white mb-2 uppercase tracking-wide">Contact Direct</h3>
-                  <p className="text-gray-400">Tél : <a href="tel:+41786041542" className="text-white hover:text-kabuki-red font-bold transition text-lg tracking-tighter">+41 78 604 15 42</a></p>
+                  <p className="text-gray-400">Tél : <a href="tel:+41786767100" className="text-white hover:text-kabuki-red font-bold transition text-lg tracking-tighter">078 676 71 00</a></p>
                   <p className="text-gray-400">Email : <a href="mailto:info@kabuki-sushi.ch" className="text-white hover:text-kabuki-red font-bold transition">info@kabuki-sushi.ch</a></p>
                 </div>
               </div>
@@ -276,7 +276,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
+      <div className="w-full h-450px bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
           src={mapEmbedUrl}
           title="Plan d'accès Kabuki Sushi"

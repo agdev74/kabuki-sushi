@@ -9,6 +9,7 @@ import PageLoader from "@/components/PageLoader";
 import ScrollToTop from "@/components/ScrollToTop";
 import CookieBanner from "@/components/CookieBanner";
 import Footer from "@/components/Footer";
+import StoreStatusBanner from "@/components/StoreStatusBanner";
 
 // ✅ CHARGEMENT DYNAMIQUE DU PANIER
 const CartDrawer = dynamic(() => import("@/components/CartDrawer"), {
@@ -27,6 +28,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         <PageLoader />
         
         <Navbar onOpenCart={openCart} />
+        <StoreStatusBanner />
 
         <main className="flex-1">
           {children}

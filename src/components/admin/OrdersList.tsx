@@ -64,6 +64,21 @@ export default function OrdersList() {
     }
   }, [isSoundEnabled]);
 
+  // Fire-and-forget WhatsApp vers le +41786767100 (Règle Sécurité #2)
+  const notifyWhatsApp = useCallback((
+    event: "new_delivery" | "order_ready" | "order_cancelled",
+    orderId: number,
+    customerName: string,
+    orderType: string,
+    deliveryAddress?: string,
+  ) => {
+    fetch("/api/notifications/whatsapp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, orderId, customerName, orderType, deliveryAddress }),
+    }).catch(() => {}); // non-bloquant
+  }, []);
+
   const fetchOrders = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setLoading(true);
     try {
@@ -84,12 +99,22 @@ export default function OrdersList() {
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
-    if (error) alert("Erreur de mise à jour");
-    else {
+    if (error) {
+      alert("Erreur de mise à jour");
+    } else {
+      // Notifications WhatsApp selon l'événement (Événements #2 et #3)
+      const order = orders.find((o) => o.id === orderId);
+      if (order) {
+        if (newStatus === "Prête" && order.order_type === "Livraison") {
+          notifyWhatsApp("order_ready", order.id, order.customer_name, order.order_type, order.delivery_address);
+        } else if (newStatus === "Annulée") {
+          notifyWhatsApp("order_cancelled", order.id, order.customer_name, order.order_type);
+        }
+      }
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
       }
-      fetchOrders(); 
+      fetchOrders();
     }
   };
 
@@ -100,17 +125,29 @@ export default function OrdersList() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload) => {
         const isNowPaid = payload.new?.status === "Payé";
         const wasNotPaid = !payload.old || payload.old.status !== "Payé";
-        if (isNowPaid && wasNotPaid) playNotification();
+        if (isNowPaid && wasNotPaid) {
+          playNotification();
+          // Événement #1 : nouvelle livraison payée (UPDATE vers "Payé")
+          if (payload.new?.order_type === "Livraison") {
+            notifyWhatsApp("new_delivery", payload.new.id, payload.new.customer_name, payload.new.order_type, payload.new.delivery_address);
+          }
+        }
         fetchOrders();
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (payload) => {
-        if (payload.new?.status === "Payé") playNotification();
+        if (payload.new?.status === "Payé") {
+          playNotification();
+          // Événement #1 : nouvelle livraison payée (INSERT direct)
+          if (payload.new?.order_type === "Livraison") {
+            notifyWhatsApp("new_delivery", payload.new.id, payload.new.customer_name, payload.new.order_type, payload.new.delivery_address);
+          }
+        }
         fetchOrders();
       })
       .subscribe();
-      
+
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchOrders, playNotification, supabase]); 
+  }, [fetchOrders, playNotification, notifyWhatsApp, supabase]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {

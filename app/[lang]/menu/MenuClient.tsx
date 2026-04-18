@@ -112,7 +112,7 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
         </div>
       </div>
       
-      <div className="p-3 flex flex-col flex-grow relative">
+      <div className="p-3 flex flex-col grow relative">
         <div className="flex-1 min-w-0 mb-3">
           <h3 className="text-[11px] font-bold text-white uppercase line-clamp-1 leading-tight font-display tracking-wide mb-1">
             {displayName.split('(')[0]}
@@ -207,7 +207,7 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
           </Reveal>
         </div>
 
-        <div className="sticky top-[70px] z-30 bg-[#080808]/80 backdrop-blur-xl py-4 border-b border-neutral-900 mb-8">
+        <div className="sticky top-70px z-30 bg-[#080808]/80 backdrop-blur-xl py-4 border-b border-neutral-900 mb-8">
           <div className="container mx-auto px-4">
             <div className="relative max-w-md mx-auto mb-6">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" size={16} aria-hidden="true" />
@@ -227,7 +227,7 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   aria-pressed={activeCategory === cat.id}
-                  className={`flex-shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                  className={`shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
                     activeCategory === cat.id 
                     ? "bg-kabuki-red border-kabuki-red text-white" 
                     : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin, Tag } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin, Tag, AlertTriangle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
@@ -12,6 +12,7 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 
 // ✅ IMPORT DU CONTEXTE UTILISATEUR
 import { useUser } from "@/context/UserContext";
+import { checkStoreStatus, type StoreStatus } from "@/utils/storeHours";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -85,8 +86,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const t = cartTranslations[lang as keyof typeof cartTranslations] || cartTranslations.fr;
 
   // ✅ RECUPERATION DU CONTEXTE UTILISATEUR ET ETAT DU CASHBACK
-  const { user, profile } = useUser(); 
-  const [useWallet, setUseWallet] = useState(false); 
+  const { user, profile } = useUser();
+  const [useWallet, setUseWallet] = useState(false);
+
+  // Statut d'ouverture du restaurant (Règle Sécurité #1 — timezone Zurich)
+  const [storeStatus, setStoreStatus] = useState<StoreStatus>({ isOpen: true });
+
+  useEffect(() => {
+    supabase
+      .from("store_settings")
+      .select("is_emergency_closed, emergency_closed_until")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => {
+        const emergencyUntil =
+          data?.is_emergency_closed ? (data.emergency_closed_until ?? null) : null;
+        setStoreStatus(checkStoreStatus(emergencyUntil));
+      });
+  }, [supabase]);
 
   const [isCheckout, setIsCheckout] = useState(false);
   const [isPayment, setIsPayment] = useState(false);
@@ -125,11 +142,32 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   const availableSlots = selectedDate ? (() => {
     const day = selectedDate.getDay();
-    const slots = (day >= 2 && day <= 5) ? ["11:30", "12:00", "12:30", "13:00", "13:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"] : ["18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"];
+    if (day === 1) return []; // Lundi : fermé
+    const rawSlots = (day >= 2 && day <= 5)
+      ? ["11:30", "12:00", "12:30", "13:00", "13:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"]
+      : ["18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"];
     const now = new Date();
+    let slots = rawSlots;
+
+    // Filtre les créneaux passés (+ 30 min de buffer pour aujourd'hui)
     if (selectedDate.toDateString() === now.toDateString()) {
       const cur = now.getHours() + now.getMinutes() / 60;
-      return slots.filter(s => { const [h, m] = s.split(':').map(Number); return (h + m / 60) > (cur + 0.5); });
+      slots = slots.filter(s => { const [h, m] = s.split(":").map(Number); return (h + m / 60) > (cur + 0.5); });
+    }
+
+    // Filtre les créneaux couverts par une fermeture d'urgence active
+    if (storeStatus.reason === "emergency" && storeStatus.emergencyClosedUntil) {
+      const closedUntil = new Date(storeStatus.emergencyClosedUntil);
+      const selDay = new Date(selectedDate); selDay.setHours(0, 0, 0, 0);
+      const closeDay = new Date(closedUntil); closeDay.setHours(0, 0, 0, 0);
+      if (selDay < closeDay) {
+        // Journée entièrement dans la période de fermeture
+        slots = [];
+      } else if (selDay.getTime() === closeDay.getTime()) {
+        // Jour de réouverture : uniquement les créneaux après la réouverture
+        const reopenH = closedUntil.getHours() + closedUntil.getMinutes() / 60;
+        slots = slots.filter(s => { const [h, m] = s.split(":").map(Number); return (h + m / 60) >= reopenH; });
+      }
     }
     return slots;
   })() : [];
@@ -331,6 +369,18 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <input id="customer_phone" required type="tel" placeholder={t.phonePlaceholder} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition font-mono" />
                         </div>
                         
+                        {/* Notice précommande — visible quand le restaurant est actuellement fermé */}
+                        {!storeStatus.isOpen && (
+                          <div role="alert" className="flex items-start gap-3 bg-amber-900/20 border border-amber-500/30 text-amber-400 p-4 rounded-xl">
+                            <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest leading-relaxed">
+                              {storeStatus.reason === "emergency" && storeStatus.emergencyClosedUntil
+                                ? `Restaurant fermé jusqu'au ${new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", dateStyle: "short", timeStyle: "short" }).format(new Date(storeStatus.emergencyClosedUntil))} — Précommande uniquement`
+                                : "Restaurant fermé — Sélectionnez un créneau futur pour précommander"}
+                            </p>
+                          </div>
+                        )}
+
                         <fieldset className="space-y-2">
                           <legend className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2 mb-2"><Calendar size={12} aria-hidden="true" /> {t.date}</legend>
                           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

@@ -7,8 +7,8 @@ import { motion } from "framer-motion";
 export default function WhatsAppButton() {
   const { lang } = useTranslation();
 
-  // Numéro de Kabuki (Format international)
-  const phoneNumber = "41786041542"; 
+  // Numéro de Kabuki (Format international E.164 sans +)
+  const phoneNumber = "41786767100";
 
   // Message pré-rempli selon la langue
   const getDefaultMessage = () => {

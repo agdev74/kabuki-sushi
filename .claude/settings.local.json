@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(node -e \"const df = require\\('c:/Users/adrie/kabuki-sushi/node_modules/date-fns/package.json'\\); console.log\\(df.version\\); console.log\\(Object.keys\\(df.exports || {}\\).filter\\(k => k.includes\\('tz'\\) || k.includes\\('zone'\\)\\)\\)\")",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
