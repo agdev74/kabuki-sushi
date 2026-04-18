@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { getServiceBlockExpiry } from "@/utils/storeHours";
 import { ShieldAlert, ShieldCheck, Loader2 } from "lucide-react";
 
 /**
@@ -26,15 +27,32 @@ export default function StatusBadge() {
   const [countdown, setCountdown] = useState(3);
   const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Chargement initial ─────────────────────────────────────────────────────
+  // ── Chargement initial + reset passif si expirée ──────────────────────────
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("store_settings")
-        .select("is_emergency_closed")
+        .select("is_emergency_closed, emergency_closed_until")
         .eq("id", 1)
         .single();
-      if (data) setIsClosed(data.is_emergency_closed ?? false);
+
+      if (data) {
+        const isExpired =
+          data.is_emergency_closed &&
+          data.emergency_closed_until &&
+          new Date(data.emergency_closed_until) <= new Date();
+
+        if (isExpired) {
+          // Reset passif : la fermeture est expirée, on nettoie en DB
+          await supabase
+            .from("store_settings")
+            .update({ is_emergency_closed: false, emergency_closed_until: null, updated_at: new Date().toISOString() })
+            .eq("id", 1);
+          setIsClosed(false);
+        } else {
+          setIsClosed(data.is_emergency_closed ?? false);
+        }
+      }
       setPhase("idle");
     })();
   }, [supabase]);
@@ -85,8 +103,7 @@ export default function StatusBadge() {
         .from("store_settings")
         .update({
           is_emergency_closed: next,
-          // Réinitialise la date de réouverture à chaque bascule
-          emergency_closed_until: null,
+          emergency_closed_until: next ? getServiceBlockExpiry().toISOString() : null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", 1);

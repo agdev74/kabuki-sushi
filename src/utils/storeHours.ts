@@ -138,6 +138,56 @@ export function checkStoreStatus(
 }
 
 /**
+ * Calcule le timestamp d'expiration automatique d'une fermeture d'urgence.
+ *
+ * Priorité :
+ *   1. Si on est DANS un créneau → expire à la fin de ce créneau
+ *   2. Si avant 4h (extension nocturne de la veille) → expire à la fin du créneau nocturne
+ *   3. Si ENTRE deux créneaux → expire au début du prochain créneau
+ *   4. Fallback : +12h
+ */
+export function getServiceBlockExpiry(): Date {
+  const now = new Date();
+  const { day, hours, minutes } = getNowInZurich();
+  const currentMinutes = hours * 60 + minutes;
+
+  // Cas 1 : dans un créneau du jour courant
+  for (const { startMinutes, endMinutes } of getSlotsForDay(day)) {
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+      return new Date(now.getTime() + (endMinutes - currentMinutes) * 60_000);
+    }
+  }
+
+  // Cas 2 : extension nocturne de la veille (avant 4h)
+  if (hours < 4) {
+    const yesterday = (day + 6) % 7;
+    const extended = currentMinutes + 1440;
+    for (const { startMinutes, endMinutes } of getSlotsForDay(yesterday)) {
+      if (endMinutes > 1440 && extended >= startMinutes && extended < endMinutes) {
+        return new Date(now.getTime() + (endMinutes - extended) * 60_000);
+      }
+    }
+  }
+
+  // Cas 3 : entre deux créneaux → prochain créneau dans les 7 prochains jours
+  for (let daysAhead = 0; daysAhead <= 7; daysAhead++) {
+    const targetDay = (day + daysAhead) % 7;
+    const slots = getSlotsForDay(targetDay);
+    // Trier par startMinutes pour prendre le plus tôt
+    const sorted = [...slots].sort((a, b) => a.startMinutes - b.startMinutes);
+    for (const { startMinutes } of sorted) {
+      const minutesUntilStart = daysAhead * 1440 + startMinutes - currentMinutes;
+      if (minutesUntilStart > 0) {
+        return new Date(now.getTime() + minutesUntilStart * 60_000);
+      }
+    }
+  }
+
+  // Fallback : 12h
+  return new Date(now.getTime() + 12 * 3_600_000);
+}
+
+/**
  * Retourne un libellé human-readable de l'heure de fermeture d'urgence.
  */
 export function formatEmergencyUntil(isoString: string): string {
